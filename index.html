@@ -5,216 +5,270 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GetDebriefD — Marketing Request Tool</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root {
-    --bg: #0c0c0f; --surface: #13131a; --surface2: #1a1a24; --border: #2a2a3a;
-    --accent: #e8ff47; --accent2: #ff6b47; --text: #f0f0f0; --muted: #6b6b80; --success: #47ffb2;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
-  body::before { content: ''; position: fixed; inset: 0; background-image: linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px); background-size: 40px 40px; pointer-events: none; z-index: 0; }
-
-  /* NAV */
-  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: rgba(12,12,15,0.92); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
-  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.4rem; color: var(--accent); }
-  .logo span { color: var(--text); }
-  .nav-tabs { display: flex; gap: 4px; background: var(--surface); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
-  .nav-tab { padding: 8px 18px; border-radius: 7px; cursor: pointer; font-size: 0.82rem; font-weight: 500; color: var(--muted); transition: all 0.2s; border: none; background: none; font-family: 'DM Sans', sans-serif; }
-  .nav-tab.active { background: var(--accent); color: #0c0c0f; font-weight: 700; }
-  .page { display: none; padding-top: 80px; min-height: 100vh; position: relative; z-index: 1; }
-  .page.active { display: block; }
-
-  /* HERO */
-  .hero { max-width: 780px; margin: 0 auto; padding: 60px 40px; text-align: center; }
-  .hero-tag { display: inline-block; background: rgba(232,255,71,0.1); border: 1px solid rgba(232,255,71,0.3); color: var(--accent); font-size: 0.72rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; padding: 6px 16px; border-radius: 100px; margin-bottom: 28px; }
-  h1 { font-family: 'Syne', sans-serif; font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.06; letter-spacing: -1.5px; margin-bottom: 20px; }
-  h1 em { font-style: normal; color: var(--accent); }
-  .hero-sub { color: var(--muted); font-size: 1rem; line-height: 1.65; max-width: 500px; margin: 0 auto 20px; }
-  .hero-not-for { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 0 auto 32px; padding: 11px 18px; background: rgba(255,107,71,0.06); border: 1px solid rgba(255,107,71,0.18); border-radius: 10px; font-size: 0.78rem; max-width: 520px; }
-  .nf-label { color: var(--muted); font-weight: 600; }
-  .nf-item { color: var(--muted); }
-  .cta-btn { background: var(--accent); color: #0c0c0f; border: none; padding: 14px 32px; border-radius: 10px; font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-  .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(232,255,71,0.3); }
-  .hero-features { display: flex; flex-direction: column; gap: 14px; margin: 44px 0 0; text-align: left; }
-  .hero-feature { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
-  .hero-feature-main { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; }
-  .hero-bottom-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-  .hero-feature .icon { font-size: 1.5rem; margin-bottom: 10px; }
-  .hero-feature h3 { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 700; margin-bottom: 6px; }
-  .hero-feature p { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
-  .hero-feature-main h3 { font-size: 1.05rem; }
-  .mini-task-preview { display: flex; flex-direction: column; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-  .mtp-row { display: flex; align-items: center; gap: 9px; font-size: 0.8rem; }
-  .mtp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .mtp-dot.red { background: var(--accent2); } .mtp-dot.yellow { background: var(--accent); } .mtp-dot.green { background: var(--success); }
-  .mtp-name { flex: 1; color: var(--muted); } .urgent-row .mtp-name { color: var(--text); font-weight: 600; }
-  .mtp-date { font-size: 0.72rem; color: var(--muted); }
-
-  /* FORM */
-  .form-container { max-width: 600px; margin: 0 auto; padding: 40px 40px 80px; }
-  .form-header { margin-bottom: 32px; }
-  .form-header h2 { font-family: 'Syne', sans-serif; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
-  .form-header p { color: var(--muted); font-size: 0.88rem; }
-  .section-label { display: flex; align-items: center; gap: 10px; margin: 28px 0 13px; }
-  .section-num { width: 24px; height: 24px; background: var(--accent); color: #0c0c0f; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 800; flex-shrink: 0; }
-  .section-label span { font-family: 'Syne', sans-serif; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
-  .field { margin-bottom: 13px; }
-  label { display: block; font-size: 0.83rem; font-weight: 500; margin-bottom: 6px; }
-  .required { color: var(--accent2); margin-left: 2px; }
-  input, textarea, select { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 11px 15px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 0.88rem; transition: border-color 0.2s, box-shadow 0.2s; outline: none; -webkit-appearance: none; }
-  input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,255,71,0.1); }
-  textarea { resize: vertical; min-height: 100px; }
-  select option { background: var(--surface2); }
-  input::placeholder, textarea::placeholder { color: var(--muted); font-size: 0.83rem; }
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
-  .email-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 13px; }
-  .email-box-title { font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 12px; }
-
-  /* DATEPICKER */
-  .datepicker-wrap { position: relative; }
-  .datepicker-wrap input { cursor: pointer; padding-right: 36px; }
-  .cal-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 1rem; cursor: pointer; }
-  .cal-popup { display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 999; background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 16px; width: 280px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-  .cal-popup.open { display: block; animation: fadeUp 0.18s ease; }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .cal-header span { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
-  .cal-header button { background: var(--surface); border: 1px solid var(--border); color: var(--text); width: 28px; height: 28px; border-radius: 7px; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-  .cal-header button:hover { border-color: var(--accent); color: var(--accent); }
-  .cal-weekdays { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 6px; }
-  .cal-weekdays span { text-align: center; font-size: 0.66rem; color: var(--muted); font-weight: 600; padding: 4px 0; }
-  .cal-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; }
-  .cal-day { text-align: center; padding: 7px 2px; border-radius: 7px; font-size: 0.8rem; cursor: pointer; color: var(--muted); transition: all 0.12s; border: 1px solid transparent; }
-  .cal-day:hover:not(.empty):not(.past) { background: rgba(232,255,71,0.1); color: var(--accent); }
-  .cal-day.today { border-color: var(--accent); color: var(--accent); font-weight: 700; }
-  .cal-day.selected { background: var(--accent); color: #0c0c0f; font-weight: 700; }
-  .cal-day.past { opacity: 0.2; cursor: not-allowed; }
-  .cal-day.empty { cursor: default; }
-  .cal-note { background: rgba(232,255,71,0.05); border: 1px solid rgba(232,255,71,0.2); border-radius: 10px; padding: 12px 14px; font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
-  .cal-note strong { color: var(--accent); }
-  .submit-btn { width: 100%; background: var(--accent); color: #0c0c0f; border: none; padding: 15px; border-radius: 12px; font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; cursor: pointer; margin-top: 26px; transition: all 0.2s; }
-  .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(232,255,71,0.25); }
-  .success-screen { display: none; text-align: center; padding: 60px 40px; }
-  .success-screen.active { display: block; }
-  .form-fields.hidden { display: none; }
-  .success-icon { width: 68px; height: 68px; background: rgba(71,255,178,0.1); border: 2px solid var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 22px; font-size: 1.9rem; }
-  .success-screen h2 { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 800; margin-bottom: 10px; color: var(--success); }
-  .success-screen p { color: var(--muted); margin-bottom: 26px; line-height: 1.6; }
-
-  /* DASHBOARD */
-  .dashboard { max-width: 900px; margin: 0 auto; padding: 40px 40px 80px; }
-  .dash-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-  .dash-header h2 { font-family: 'Syne', sans-serif; font-size: 1.7rem; font-weight: 800; letter-spacing: -0.5px; }
-  .dash-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 11px; margin-bottom: 20px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
-  .stat-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-  .stat-value { font-family: 'Syne', sans-serif; font-size: 1.75rem; font-weight: 800; }
-  .sv-a { color: var(--accent); } .sv-w { color: var(--accent2); } .sv-g { color: var(--success); }
-
-  /* EXPORT */
-  .export-panel { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 18px; margin-bottom: 18px; flex-wrap: wrap; }
-  .export-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1; }
-  .export-label { font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
-  .export-left select, .export-left input { width: auto; padding: 7px 12px; font-size: 0.8rem; border-radius: 8px; }
-  .export-btn { background: var(--success); color: #0c0c0f; border: none; padding: 9px 18px; border-radius: 9px; font-family: 'Syne', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-  .export-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(71,255,178,0.25); }
-
-  .filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
-  .filter-tab { padding: 6px 15px; border-radius: 100px; font-size: 0.76rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
-  .filter-tab.active { background: var(--accent); color: #0c0c0f; border-color: var(--accent); font-weight: 700; }
-  .tasks-list { display: flex; flex-direction: column; gap: 9px; }
-  .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 17px 20px; transition: border-color 0.2s, transform 0.15s; cursor: pointer; position: relative; overflow: hidden; }
-  .task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
-  .task-card.urgent::before { background: var(--accent2); }
-  .task-card.upcoming::before { background: var(--accent); }
-  .task-card.done::before { background: var(--success); }
-  .task-card:hover { border-color: rgba(232,255,71,0.3); transform: translateX(3px); }
-  .task-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 7px; gap: 10px; }
-  .task-name { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; }
-  .task-badges { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
-  .type-badge { font-size: 0.66rem; padding: 3px 8px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
-  .status-badge { font-size: 0.66rem; font-weight: 600; padding: 3px 9px; border-radius: 100px; text-transform: uppercase; }
-  .sb-urgent { background: rgba(255,107,71,0.15); color: var(--accent2); border: 1px solid rgba(255,107,71,0.3); }
-  .sb-upcoming { background: rgba(232,255,71,0.1); color: var(--accent); border: 1px solid rgba(232,255,71,0.25); }
-  .sb-done { background: rgba(71,255,178,0.1); color: var(--success); border: 1px solid rgba(71,255,178,0.25); }
-  .task-meta { display: flex; gap: 13px; flex-wrap: wrap; }
-  .task-meta-item { font-size: 0.76rem; color: var(--muted); }
-
-  /* MODAL */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(12,12,15,0.88); backdrop-filter: blur(10px); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
-  .modal-overlay.active { display: flex; }
-  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 30px; max-width: 600px; width: 100%; max-height: 88vh; overflow-y: auto; position: relative; animation: fadeUp 0.22s ease; }
-  .modal-close { position: absolute; top: 13px; right: 13px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.88rem; transition: all 0.15s; }
-  .modal-close:hover { color: var(--text); }
-  .modal-title { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.4px; margin-bottom: 4px; padding-right: 40px; }
-  .modal-sub { font-size: 0.78rem; color: var(--muted); margin-bottom: 18px; }
-  .sb { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 13px 15px; margin-bottom: 7px; }
-  .sb-lbl { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
-  .sb-val { font-size: 0.86rem; line-height: 1.55; }
-  .remind-bar { background: rgba(255,107,71,0.08); border: 1px solid rgba(255,107,71,0.2); border-radius: 9px; padding: 11px 13px; margin-bottom: 11px; font-size: 0.8rem; color: var(--accent2); }
-  .cal-btns { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 8px; }
-  .cal-btn { display: flex; align-items: center; gap: 6px; padding: 9px 13px; border-radius: 9px; font-size: 0.78rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface2); color: var(--text); text-decoration: none; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
-  .cal-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .modal-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
-  .btn-sec { padding: 10px 16px; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; transition: all 0.2s; }
-  .btn-sec:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-del:hover { border-color: var(--accent2) !important; color: var(--accent2) !important; }
-
-  /* QUICK APPROVAL */
-  .qa-section { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px; }
-  .qa-title { font-family: 'Syne', sans-serif; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 12px; }
-  .qa-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-  .qa-item { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-  .qa-item-q { font-size: 0.84rem; margin-bottom: 6px; }
-  .qa-item-meta { font-size: 0.72rem; color: var(--muted); margin-bottom: 8px; }
-  .qa-item-answer { font-size: 0.82rem; padding: 8px 12px; border-radius: 8px; margin-top: 6px; }
-  .qa-approved { background: rgba(71,255,178,0.08); border: 1px solid rgba(71,255,178,0.2); color: var(--success); }
-  .qa-changes { background: rgba(255,107,71,0.08); border: 1px solid rgba(255,107,71,0.2); color: var(--accent2); }
-  .qa-pending { background: rgba(232,255,71,0.06); border: 1px solid rgba(232,255,71,0.15); color: var(--accent); font-size: 0.76rem; }
-  .qa-input-row { display: flex; gap: 8px; }
-  .qa-input-row input { flex: 1; padding: 10px 13px; font-size: 0.84rem; border-radius: 9px; }
-  .qa-send-btn { background: var(--accent); color: #0c0c0f; border: none; padding: 10px 16px; border-radius: 9px; font-family: 'Syne', sans-serif; font-size: 0.8rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
-  .qa-send-btn:hover { transform: translateY(-1px); }
-
-  /* APPROVAL POPUP */
-  .approval-popup { display: none; position: fixed; top: 20px; right: 20px; z-index: 500; background: var(--surface); border: 1px solid var(--accent); border-radius: 16px; padding: 20px 22px; max-width: 340px; box-shadow: 0 16px 50px rgba(0,0,0,0.6); animation: slideIn 0.3s ease; }
-  .approval-popup.active { display: block; }
-  @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-  .ap-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 6px; }
-  .ap-task { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; }
-  .ap-question { font-size: 0.9rem; font-weight: 500; margin-bottom: 14px; line-height: 1.5; }
-  .ap-btns { display: flex; gap: 8px; }
-  .ap-approve { flex: 1; background: var(--success); color: #0c0c0f; border: none; padding: 10px; border-radius: 9px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
-  .ap-changes { flex: 1; background: transparent; color: var(--accent2); border: 1px solid var(--accent2); padding: 10px; border-radius: 9px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
-  .ap-approve:hover { transform: translateY(-1px); } .ap-changes:hover { background: rgba(255,107,71,0.1); }
-  .ap-changes-input { display: none; margin-top: 10px; }
-  .ap-changes-input textarea { min-height: 60px; font-size: 0.84rem; }
-  .ap-submit { width: 100%; background: var(--accent2); color: #fff; border: none; padding: 9px; border-radius: 8px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.82rem; cursor: pointer; margin-top: 8px; }
-
-  /* TOAST */
-  .toast-container { position: fixed; bottom: 22px; right: 22px; z-index: 400; display: flex; flex-direction: column; gap: 7px; }
-  .toast { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 15px; max-width: 310px; font-size: 0.82rem; box-shadow: 0 8px 28px rgba(0,0,0,0.4); animation: fadeUp 0.28s ease; display: flex; align-items: flex-start; gap: 9px; }
-  .toast.ok { border-color: var(--success); }
-  .ti { font-size: 1rem; flex-shrink: 0; }
-  .tt strong { display: block; margin-bottom: 1px; font-size: 0.76rem; color: var(--accent2); }
-  .toast.ok .tt strong { color: var(--success); }
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-  .empty-state .big { font-size: 3rem; margin-bottom: 12px; }
-  .empty-state h3 { font-family: 'Syne', sans-serif; font-size: 1rem; margin-bottom: 7px; color: var(--text); }
-
-  @media (max-width: 640px) {
-    nav { padding: 13px 16px; }
-    .form-container, .dashboard { padding: 22px 16px 60px; }
-    .field-row { grid-template-columns: 1fr; }
-    .dash-stats { grid-template-columns: 1fr 1fr; }
-    .hero-feature-main { grid-template-columns: 1fr; }
-    .hero-bottom-row { grid-template-columns: 1fr; }
-    h1 { font-size: 2rem; }
+  :root { --bg:#0c0c0f;--surface:#13131a;--surface2:#1a1a24;--border:#2a2a3a;--accent:#e8ff47;--accent2:#ff6b47;--text:#f0f0f0;--muted:#6b6b80;--success:#47ffb2; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(232,255,71,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(232,255,71,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 40px;background:rgba(12,12,15,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+  .logo{font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:var(--accent);}
+  .logo span{color:var(--text);}
+  .nav-tabs{display:flex;gap:4px;background:var(--surface);padding:4px;border-radius:10px;border:1px solid var(--border);}
+  .nav-tab{padding:8px 18px;border-radius:7px;cursor:pointer;font-size:0.82rem;font-weight:500;color:var(--muted);transition:all 0.2s;border:none;background:none;font-family:'DM Sans',sans-serif;}
+  .nav-tab.active{background:var(--accent);color:#0c0c0f;font-weight:700;}
+  .page{display:none;padding-top:80px;min-height:100vh;position:relative;z-index:1;}
+  .page.active{display:block;}
+  .hero{max-width:780px;margin:0 auto;padding:60px 40px;text-align:center;}
+  .hero-tag{display:inline-block;background:rgba(232,255,71,0.1);border:1px solid rgba(232,255,71,0.3);color:var(--accent);font-size:0.72rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:6px 16px;border-radius:100px;margin-bottom:28px;}
+  h1{font-family:'Syne',sans-serif;font-size:clamp(2.2rem,5vw,3.6rem);font-weight:800;line-height:1.06;letter-spacing:-1.5px;margin-bottom:20px;}
+  h1 em{font-style:normal;color:var(--accent);}
+  .hero-sub{color:var(--muted);font-size:1rem;line-height:1.65;max-width:500px;margin:0 auto 20px;}
+  .hero-not-for{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;margin:0 auto 32px;padding:11px 18px;background:rgba(255,107,71,0.06);border:1px solid rgba(255,107,71,0.18);border-radius:10px;font-size:0.78rem;max-width:520px;}
+  .nf-label{color:var(--muted);font-weight:600;}
+  .nf-item{color:var(--muted);}
+  .cta-btn{background:var(--accent);color:#0c0c0f;border:none;padding:14px 32px;border-radius:10px;font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.2s;}
+  .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(232,255,71,0.3);}
+  .hero-features{display:flex;flex-direction:column;gap:14px;margin:44px 0 0;text-align:left;}
+  .hero-feature{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;}
+  .hero-feature-main{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;}
+  .hero-bottom-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .hero-feature .icon{font-size:1.5rem;margin-bottom:10px;}
+  .hero-feature h3{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;margin-bottom:6px;}
+  .hero-feature p{font-size:0.78rem;color:var(--muted);line-height:1.6;}
+  .mini-task-preview{display:flex;flex-direction:column;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px;}
+  .mtp-row{display:flex;align-items:center;gap:9px;font-size:0.8rem;}
+  .mtp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .mtp-dot.red{background:var(--accent2);}.mtp-dot.yellow{background:var(--accent);}.mtp-dot.green{background:var(--success);}
+  .mtp-name{flex:1;color:var(--muted);}.urgent-row .mtp-name{color:var(--text);font-weight:600;}
+  .mtp-date{font-size:0.72rem;color:var(--muted);}
+  .form-container{max-width:600px;margin:0 auto;padding:40px 40px 80px;}
+  .form-header{margin-bottom:32px;}
+  .form-header h2{font-family:'Syne',sans-serif;font-size:1.75rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px;}
+  .form-header p{color:var(--muted);font-size:0.88rem;}
+  .section-label{display:flex;align-items:center;gap:10px;margin:28px 0 13px;}
+  .section-num{width:24px;height:24px;background:var(--accent);color:#0c0c0f;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:800;flex-shrink:0;}
+  .section-label span{font-family:'Syne',sans-serif;font-size:0.74rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);}
+  .field{margin-bottom:13px;}
+  label{display:block;font-size:0.83rem;font-weight:500;margin-bottom:6px;}
+  .required{color:var(--accent2);margin-left:2px;}
+  input,textarea,select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 15px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.88rem;transition:border-color 0.2s,box-shadow 0.2s;outline:none;-webkit-appearance:none;}
+  input:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,255,71,0.1);}
+  textarea{resize:vertical;min-height:100px;}
+  select option{background:var(--surface2);}
+  input::placeholder,textarea::placeholder{color:var(--muted);font-size:0.83rem;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .email-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:13px;}
+  .email-box-title{font-family:'Syne',sans-serif;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
+  .upload-zone{border:2px dashed var(--border);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;background:var(--surface);}
+  .upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(232,255,71,0.04);}
+  .upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{font-size:2rem;margin-bottom:8px;}
+  .upload-text{font-size:0.85rem;color:var(--muted);}
+  .upload-text strong{color:var(--accent);}
+  .upload-hint{font-size:0.73rem;color:var(--muted);margin-top:4px;}
+  .file-list{display:flex;flex-direction:column;gap:7px;margin-top:11px;}
+  .file-item{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 12px;}
+  .file-item-icon{font-size:1.1rem;flex-shrink:0;}
+  .file-item-name{flex:1;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .file-item-size{font-size:0.72rem;color:var(--muted);flex-shrink:0;}
+  .file-item-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 4px;transition:color 0.15s;flex-shrink:0;}
+  .file-item-remove:hover{color:var(--accent2);}
+  .upload-progress{height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden;display:none;}
+  .upload-progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s;width:0%;}
+  .datepicker-wrap{position:relative;}
+  .datepicker-wrap input{cursor:pointer;padding-right:36px;}
+  .cal-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:1rem;cursor:pointer;}
+  .cal-popup{display:none;position:absolute;top:calc(100% + 8px);left:0;z-index:999;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;width:280px;box-shadow:0 12px 40px rgba(0,0,0,0.5);}
+  .cal-popup.open{display:block;animation:fadeUp 0.18s ease;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .cal-header span{font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;}
+  .cal-header button{background:var(--surface);border:1px solid var(--border);color:var(--text);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+  .cal-header button:hover{border-color:var(--accent);color:var(--accent);}
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px;}
+  .cal-weekdays span{text-align:center;font-size:0.66rem;color:var(--muted);font-weight:600;padding:4px 0;}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .cal-day{text-align:center;padding:7px 2px;border-radius:7px;font-size:0.8rem;cursor:pointer;color:var(--muted);transition:all 0.12s;border:1px solid transparent;}
+  .cal-day:hover:not(.empty):not(.past){background:rgba(232,255,71,0.1);color:var(--accent);}
+  .cal-day.today{border-color:var(--accent);color:var(--accent);font-weight:700;}
+  .cal-day.selected{background:var(--accent);color:#0c0c0f;font-weight:700;}
+  .cal-day.past{opacity:0.2;cursor:not-allowed;}
+  .cal-day.empty{cursor:default;}
+  .cal-note{background:rgba(232,255,71,0.05);border:1px solid rgba(232,255,71,0.2);border-radius:10px;padding:12px 14px;font-size:0.8rem;color:var(--muted);margin-top:10px;}
+  .cal-note strong{color:var(--accent);}
+  .submit-btn{width:100%;background:var(--accent);color:#0c0c0f;border:none;padding:15px;border-radius:12px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;margin-top:26px;transition:all 0.2s;}
+  .submit-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(232,255,71,0.25);}
+  .submit-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+  .success-screen{display:none;text-align:center;padding:60px 40px;}
+  .success-screen.active{display:block;}
+  .form-fields.hidden{display:none;}
+  .success-icon{width:68px;height:68px;background:rgba(71,255,178,0.1);border:2px solid var(--success);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-size:1.9rem;}
+  .success-screen h2{font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800;margin-bottom:10px;color:var(--success);}
+  .success-screen p{color:var(--muted);margin-bottom:26px;line-height:1.6;}
+  .dashboard{max-width:900px;margin:0 auto;padding:40px 40px 80px;}
+  .dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+  .dash-header h2{font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800;letter-spacing:-0.5px;}
+  .dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:20px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+  .stat-label{font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+  .stat-value{font-family:'Syne',sans-serif;font-size:1.75rem;font-weight:800;}
+  .sv-a{color:var(--accent);}.sv-w{color:var(--accent2);}.sv-g{color:var(--success);}
+  .export-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 18px;margin-bottom:18px;flex-wrap:wrap;}
+  .export-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1;}
+  .export-label{font-size:0.82rem;font-weight:600;white-space:nowrap;}
+  .export-left select,.export-left input{width:auto;padding:7px 12px;font-size:0.8rem;border-radius:8px;}
+  .export-btn{background:var(--success);color:#0c0c0f;border:none;padding:9px 18px;border-radius:9px;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+  .export-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(71,255,178,0.25);}
+  .filter-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+  .filter-tab{padding:6px 15px;border-radius:100px;font-size:0.76rem;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+  .filter-tab.active{background:var(--accent);color:#0c0c0f;border-color:var(--accent);font-weight:700;}
+  .tasks-list{display:flex;flex-direction:column;gap:9px;}
+  .task-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:17px 20px;transition:border-color 0.2s,transform 0.15s;cursor:pointer;position:relative;overflow:hidden;}
+  .task-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+  .task-card.urgent::before{background:var(--accent2);}
+  .task-card.upcoming::before{background:var(--accent);}
+  .task-card.done::before{background:var(--success);}
+  .task-card:hover{border-color:rgba(232,255,71,0.3);transform:translateX(3px);}
+  .task-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:10px;}
+  .task-name{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;}
+  .task-badges{display:flex;gap:5px;align-items:center;flex-shrink:0;}
+  .type-badge{font-size:0.66rem;padding:3px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);white-space:nowrap;}
+  .status-badge{font-size:0.66rem;font-weight:600;padding:3px 9px;border-radius:100px;text-transform:uppercase;}
+  .sb-urgent{background:rgba(255,107,71,0.15);color:var(--accent2);border:1px solid rgba(255,107,71,0.3);}
+  .sb-upcoming{background:rgba(232,255,71,0.1);color:var(--accent);border:1px solid rgba(232,255,71,0.25);}
+  .sb-done{background:rgba(71,255,178,0.1);color:var(--success);border:1px solid rgba(71,255,178,0.25);}
+  .task-meta{display:flex;gap:13px;flex-wrap:wrap;}
+  .task-meta-item{font-size:0.76rem;color:var(--muted);}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(12,12,15,0.88);backdrop-filter:blur(10px);z-index:200;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px;max-width:600px;width:100%;max-height:88vh;overflow-y:auto;position:relative;animation:fadeUp 0.22s ease;}
+  .modal-close{position:absolute;top:13px;right:13px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:30px;height:30px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.88rem;transition:all 0.15s;}
+  .modal-close:hover{color:var(--text);}
+  .modal-title{font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;letter-spacing:-0.4px;margin-bottom:4px;padding-right:40px;}
+  .modal-sub{font-size:0.78rem;color:var(--muted);margin-bottom:18px;}
+  .sb{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:7px;}
+  .sb-lbl{font-size:0.66rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:4px;font-weight:600;}
+  .sb-val{font-size:0.86rem;line-height:1.55;}
+  .remind-bar{background:rgba(255,107,71,0.08);border:1px solid rgba(255,107,71,0.2);border-radius:9px;padding:11px 13px;margin-bottom:11px;font-size:0.8rem;color:var(--accent2);}
+  .cal-btns{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;}
+  .cal-btn{display:flex;align-items:center;gap:6px;padding:9px 13px;border-radius:9px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text);text-decoration:none;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  .cal-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .modal-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .btn-sec{padding:10px 16px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:10px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:0.82rem;transition:all 0.2s;}
+  .btn-sec:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-del:hover{border-color:var(--accent2)!important;color:var(--accent2)!important;}
+  .attach-list{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
+  .attach-item{display:flex;align-items:center;gap:9px;padding:8px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text);transition:border-color 0.15s;font-size:0.82rem;}
+  .attach-item:hover{border-color:var(--accent);color:var(--accent);}
+  .qa-section{margin-top:16px;border-top:1px solid var(--border);padding-top:16px;}
+  .qa-title{font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:12px;}
+  .qa-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+  .qa-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+  .qa-item-q{font-size:0.84rem;margin-bottom:6px;}
+  .qa-item-meta{font-size:0.72rem;color:var(--muted);margin-bottom:8px;}
+  .qa-item-answer{font-size:0.82rem;padding:8px 12px;border-radius:8px;margin-top:6px;}
+  .qa-approved{background:rgba(71,255,178,0.08);border:1px solid rgba(71,255,178,0.2);color:var(--success);}
+  .qa-changes{background:rgba(255,107,71,0.08);border:1px solid rgba(255,107,71,0.2);color:var(--accent2);}
+  .qa-pending{background:rgba(232,255,71,0.06);border:1px solid rgba(232,255,71,0.15);color:var(--accent);font-size:0.76rem;}
+  .qa-input-row{display:flex;gap:8px;}
+  .qa-input-row input{flex:1;padding:10px 13px;font-size:0.84rem;border-radius:9px;}
+  .qa-send-btn{background:var(--accent);color:#0c0c0f;border:none;padding:10px 16px;border-radius:9px;font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .approval-popup{display:none;position:fixed;top:20px;right:20px;z-index:500;background:var(--surface);border:1px solid var(--accent);border-radius:16px;padding:20px 22px;max-width:340px;box-shadow:0 16px 50px rgba(0,0,0,0.6);}
+  .approval-popup.active{display:block;animation:slideIn 0.3s ease;}
+  @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+  .ap-label{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);margin-bottom:6px;}
+  .ap-task{font-size:0.78rem;color:var(--muted);margin-bottom:10px;}
+  .ap-question{font-size:0.9rem;font-weight:500;margin-bottom:14px;line-height:1.5;}
+  .ap-btns{display:flex;gap:8px;}
+  .ap-approve{flex:1;background:var(--success);color:#0c0c0f;border:none;padding:10px;border-radius:9px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;}
+  .ap-changes{flex:1;background:transparent;color:var(--accent2);border:1px solid var(--accent2);padding:10px;border-radius:9px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;}
+  .ap-changes-input{display:none;margin-top:10px;}
+  .ap-changes-input textarea{min-height:60px;font-size:0.84rem;}
+  .ap-submit{width:100%;background:var(--accent2);color:#fff;border:none;padding:9px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;margin-top:8px;}
+  .loading-overlay{display:none;position:fixed;inset:0;background:rgba(12,12,15,0.7);z-index:600;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+  .loading-overlay.active{display:flex;}
+  .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{font-family:'Syne',sans-serif;font-size:0.88rem;color:var(--muted);}
+  .toast-container{position:fixed;bottom:22px;right:22px;z-index:400;display:flex;flex-direction:column;gap:7px;}
+  .toast{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 15px;max-width:310px;font-size:0.82rem;box-shadow:0 8px 28px rgba(0,0,0,0.4);animation:fadeUp 0.28s ease;display:flex;align-items:flex-start;gap:9px;}
+  .toast.ok{border-color:var(--success);}
+  .ti{font-size:1rem;flex-shrink:0;}
+  .tt strong{display:block;margin-bottom:1px;font-size:0.76rem;color:var(--accent2);}
+  .toast.ok .tt strong{color:var(--success);}
+  .approvals-section{margin-bottom:24px;}
+  .approvals-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .approvals-section-title{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;display:flex;align-items:center;gap:10px;}
+  .approvals-count-badge{background:var(--accent2);color:#fff;border-radius:100px;padding:2px 10px;font-size:0.72rem;font-weight:700;}
+  .approvals-empty{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;font-size:0.84rem;color:var(--muted);}
+  .approvals-panel.active{display:block;}
+  .tasks-panel{display:block;}
+  .tasks-panel.hidden{display:none;}
+  .qa-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:18px 20px;margin-bottom:9px;}
+  .qa-card-task{font-size:0.72rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;font-weight:600;}
+  .qa-card-q{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;margin-bottom:4px;}
+  .qa-card-meta{font-size:0.76rem;color:var(--muted);margin-bottom:14px;}
+  .qa-card-btns{display:flex;gap:8px;}
+  .qa-approve-btn{background:var(--success);color:#0c0c0f;border:none;padding:9px 18px;border-radius:9px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+  .qa-approve-btn:hover{transform:translateY(-1px);}
+  .qa-changes-btn{background:transparent;color:var(--accent2);border:1px solid var(--accent2);padding:9px 18px;border-radius:9px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;transition:all 0.2s;}
+  .qa-changes-btn:hover{background:rgba(255,107,71,0.1);}
+  .qa-feedback-row{display:none;margin-top:10px;gap:8px;flex-direction:column;}
+  .qa-feedback-row.open{display:flex;}
+  .qa-feedback-row textarea{min-height:60px;font-size:0.84rem;}
+  .qa-submit-btn{background:var(--accent2);color:#fff;border:none;padding:9px 14px;border-radius:8px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;align-self:flex-start;}
+  .qa-attach-row{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+  .qa-note-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.84rem;outline:none;resize:vertical;min-height:60px;}
+  .qa-note-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,255,71,0.1);}
+  .qa-file-zone{border:1.5px dashed var(--border);border-radius:9px;padding:12px;text-align:center;cursor:pointer;position:relative;background:var(--surface);transition:all 0.2s;font-size:0.8rem;color:var(--muted);}
+  .qa-file-zone:hover{border-color:var(--accent);color:var(--accent);}
+  .qa-file-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .qa-file-list{display:flex;flex-direction:column;gap:5px;}
+  .qa-file-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:0.78rem;}
+  .qa-file-item-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .qa-file-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:0.9rem;padding:0 2px;}
+  .qa-file-remove:hover{color:var(--accent2);}
+  .qa-attachment-view{margin-top:6px;}
+  .qa-attachment-view a{display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--accent);text-decoration:none;padding:5px 10px;background:rgba(232,255,71,0.06);border:1px solid rgba(232,255,71,0.2);border-radius:7px;margin:3px 3px 0 0;}
+  .qa-attachment-view a:hover{background:rgba(232,255,71,0.12);}
+  .notif-modal-overlay{display:none;position:fixed;inset:0;background:rgba(12,12,15,0.92);backdrop-filter:blur(12px);z-index:700;align-items:center;justify-content:center;padding:20px;}
+  .notif-modal-overlay.active{display:flex;animation:fadeUp 0.25s ease;}
+  .notif-modal{background:var(--surface);border:1px solid var(--accent);border-radius:20px;padding:36px 32px;max-width:460px;width:100%;text-align:center;position:relative;}
+  .notif-icon{font-size:3rem;margin-bottom:16px;}
+  .notif-modal h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:10px;letter-spacing:-0.4px;}
+  .notif-modal p{color:var(--muted);font-size:0.88rem;line-height:1.65;margin-bottom:10px;}
+  .notif-reasons{display:flex;flex-direction:column;gap:8px;margin:16px 0 22px;text-align:left;}
+  .notif-reason{display:flex;align-items:flex-start;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:0.83rem;}
+  .notif-reason-icon{font-size:1.1rem;flex-shrink:0;}
+  .notif-reason-text{line-height:1.5;}
+  .notif-reason-text strong{display:block;font-size:0.8rem;margin-bottom:2px;}
+  .notif-reason-text span{color:var(--muted);font-size:0.78rem;}
+  .notif-enable-btn{width:100%;background:var(--accent);color:#0c0c0f;border:none;padding:14px;border-radius:12px;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;transition:all 0.2s;margin-bottom:10px;}
+  .notif-enable-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(232,255,71,0.3);}
+  .notif-skip{background:none;border:none;color:var(--muted);font-size:0.8rem;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;}
+  .notif-skip:hover{color:var(--text);}
+  .home-notif-banner{background:rgba(255,107,71,0.08);border:1px solid rgba(255,107,71,0.25);border-radius:14px;padding:20px 24px;margin:28px 0 0;text-align:left;display:flex;gap:16px;align-items:flex-start;}
+  .home-notif-banner-icon{font-size:1.8rem;flex-shrink:0;}
+  .home-notif-banner h3{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:800;margin-bottom:5px;color:var(--accent2);}
+  .home-notif-banner p{font-size:0.8rem;color:var(--muted);line-height:1.6;margin-bottom:10px;}
+  .home-notif-btn{background:var(--accent2);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;}
+  .home-notif-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(255,107,71,0.3);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+  .empty-state .big{font-size:3rem;margin-bottom:12px;}
+  .empty-state h3{font-family:'Syne',sans-serif;font-size:1rem;margin-bottom:7px;color:var(--text);}
+  @media(max-width:640px){
+    nav{padding:13px 16px;}
+    .form-container,.dashboard{padding:22px 16px 60px;}
+    .field-row{grid-template-columns:1fr;}
+    .dash-stats{grid-template-columns:1fr 1fr;}
+    .hero-feature-main{grid-template-columns:1fr;}
+    .hero-bottom-row{grid-template-columns:1fr;}
+    h1{font-size:2rem;}
   }
 </style>
 </head>
 <body>
-
 <nav>
   <div class="logo">GetDebriefD<span>.</span></div>
   <div class="nav-tabs">
@@ -224,7 +278,6 @@
   </div>
 </nav>
 
-<!-- HOME -->
 <div id="page-home" class="page active">
   <div class="hero">
     <div class="hero-tag">✦ For marketing teams of 1 to 5 people</div>
@@ -242,7 +295,7 @@
         <div>
           <div class="icon">✅</div>
           <h3>See everything at a glance</h3>
-          <p>Your tasks sorted by deadline. Most urgent at the top, completed at the bottom. No learning curve — open it and you know exactly what to do next.</p>
+          <p>Your tasks sorted by deadline. Most urgent at the top. No learning curve — open it and you know exactly what needs doing.</p>
         </div>
         <div class="mini-task-preview">
           <div class="mtp-row urgent-row"><span class="mtp-dot red"></span><span class="mtp-name">Instagram launch post</span><span class="mtp-date">Today</span></div>
@@ -251,95 +304,78 @@
         </div>
       </div>
       <div class="hero-bottom-row">
-        <div class="hero-feature">
-          <div class="icon">⚡</div>
-          <h3>Quick approvals</h3>
-          <p>Ask your boss a question inside any task. They get a popup — one click to approve or request changes. No office visit needed.</p>
-        </div>
-        <div class="hero-feature">
-          <div class="icon">📅</div>
-          <h3>Deadlines in your calendar</h3>
-          <p>One click sends any deadline to Google Calendar, Outlook, or Apple Calendar.</p>
-        </div>
-        <div class="hero-feature">
-          <div class="icon">🚀</div>
-          <h3>Proof when it's raise time</h3>
-          <p>Download every completed task by week, month, or year. Show exactly what you did — not just what you remember.</p>
-        </div>
+        <div class="hero-feature"><div class="icon">⚡</div><h3>Quick approvals</h3><p>Ask a question inside any task. Your boss gets a popup — one click to approve or request changes. No office visit needed.</p></div>
+        <div class="hero-feature"><div class="icon">📎</div><h3>Attach anything</h3><p>Upload files of any type, any size directly to your request. PDFs, videos, briefs — all in one place.</p></div>
+        <div class="hero-feature"><div class="icon">🚀</div><h3>Proof when it's raise time</h3><p>Download every completed task by week, month, or year. Show exactly what you delivered.</p></div>
+      </div>
+    </div>
+    <div class="home-notif-banner">
+      <div class="home-notif-banner-icon">⚠️</div>
+      <div>
+        <h3>Important — Enable Notifications</h3>
+        <p>This tool only works properly if notifications are on. Without them, you will not be alerted when your boss approves a request, requests changes, or when a deadline is approaching. Don't let a missed alert cost you.</p>
+        <button class="home-notif-btn" onclick="enableNotifications()">🔔 Enable Notifications</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- FORM -->
 <div id="page-form" class="page">
   <div class="form-container">
-    <div class="form-header">
-      <h2 id="formTitle">New Request</h2>
-      <p id="formSubtitle">Fill this out in under 2 minutes.</p>
-    </div>
+    <div class="form-header"><h2 id="formTitle">New Request</h2><p id="formSubtitle">Fill this out in under 2 minutes.</p></div>
     <div class="form-fields" id="formFields">
-
-      <!-- PEOPLE -->
       <div class="section-label"><div class="section-num">1</div><span>Who's Involved</span></div>
       <div class="email-box">
         <div class="email-box-title">📬 Both will receive a summary</div>
         <div class="field-row">
-          <div class="field">
-            <label>Your Name <span class="required">*</span></label>
-            <input type="text" id="requesterName" placeholder="Your name">
-          </div>
-          <div class="field">
-            <label>Your Email <span class="required">*</span></label>
-            <input type="email" id="requesterEmail" placeholder="you@company.com">
-          </div>
+          <div class="field"><label>Your Name <span class="required">*</span></label><input type="text" id="requesterName" placeholder="Your name"></div>
+          <div class="field"><label>Your Email <span class="required">*</span></label><input type="email" id="requesterEmail" placeholder="you@company.com"></div>
         </div>
         <div class="field-row">
-          <div class="field">
-            <label>Assignee Name <span class="required">*</span></label>
-            <input type="text" id="assigneeName" placeholder="Who handles this?">
-          </div>
-          <div class="field">
-            <label>Assignee Email <span class="required">*</span></label>
-            <input type="email" id="assigneeEmail" placeholder="them@company.com">
-          </div>
+          <div class="field"><label>Assignee Name <span class="required">*</span></label><input type="text" id="assigneeName" placeholder="Who handles this?"></div>
+          <div class="field"><label>Assignee Email <span class="required">*</span></label><input type="email" id="assigneeEmail" placeholder="them@company.com"></div>
         </div>
       </div>
-
-      <!-- TASK -->
-      <div class="section-label"><div class="section-num">2</div><span>The Task</span></div>
       <div class="field">
-        <label>Task Name <span class="required">*</span></label>
-        <input type="text" id="taskName" placeholder="e.g. Instagram carousel for March launch">
+        <label>Requesting Department <span class="required">*</span></label>
+        <select id="department">
+          <option value="">Select department...</option>
+          <option value="Marketing">📣 Marketing (internal)</option>
+          <option value="Sales">💼 Sales</option>
+          <option value="Operations">⚙️ Operations</option>
+          <option value="Leadership">👔 Leadership / Executive</option>
+          <option value="HR">🧑‍💼 HR</option>
+          <option value="Finance">💰 Finance</option>
+          <option value="IT">💻 IT</option>
+          <option value="Other">➕ Other</option>
+        </select>
       </div>
+      <div class="section-label"><div class="section-num">2</div><span>The Task</span></div>
+      <div class="field"><label>Task Name <span class="required">*</span></label><input type="text" id="taskName" placeholder="e.g. Instagram carousel for March launch"></div>
       <div class="field">
         <label>Marketing Type <span class="required">*</span></label>
         <select id="mtypeSelect">
           <option value="">Select a type...</option>
-          <option>🎨 Graphic Design</option>
-          <option>🎬 Video Production</option>
-          <option>✍️ Copywriting</option>
-          <option>📊 Analytics & Reports</option>
-          <option>📱 Social Media</option>
-          <option>📧 Email Marketing</option>
-          <option>🔍 SEO / SEM</option>
-          <option>💰 Paid Ads</option>
-          <option>🤝 Influencer / PR</option>
-          <option>🌐 Website / Landing Page</option>
-          <option>📸 Photography</option>
-          <option>🎙️ Podcast / Audio</option>
-          <option>📣 Campaign Strategy</option>
-          <option>🎟️ Events & Activations</option>
-          <option>➕ Other</option>
+          <option>🎨 Graphic Design</option><option>🎬 Video Production</option><option>✍️ Copywriting</option>
+          <option>📊 Analytics & Reports</option><option>📱 Social Media</option><option>📧 Email Marketing</option>
+          <option>🔍 SEO / SEM</option><option>💰 Paid Ads</option><option>🤝 Influencer / PR</option>
+          <option>🌐 Website / Landing Page</option><option>📸 Photography</option><option>🎙️ Podcast / Audio</option>
+          <option>📣 Campaign Strategy</option><option>🎟️ Events & Activations</option><option>➕ Other</option>
         </select>
       </div>
+      <div class="field"><label>Notes <span class="required">*</span></label><textarea id="notes" placeholder="Describe everything here — goal, target audience, channels (e.g. Instagram + email), references, brand guidelines, anything relevant..."></textarea></div>
+      <div class="section-label"><div class="section-num">3</div><span>Attachments</span></div>
       <div class="field">
-        <label>Notes <span class="required">*</span></label>
-        <textarea id="notes" placeholder="Describe everything here — goal, target audience, channels (e.g. Instagram + email), references, brand guidelines, budget, anything relevant..."></textarea>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="fileInput" multiple onchange="handleFileSelect(this.files)">
+          <div class="upload-icon">📎</div>
+          <div class="upload-text"><strong>Click to upload</strong> or drag and drop</div>
+          <div class="upload-hint">Any file type · Any size · Multiple files allowed</div>
+        </div>
+        <div class="file-list" id="fileList"></div>
+        <div class="upload-progress" id="uploadProgress"><div class="upload-progress-bar" id="uploadProgressBar"></div></div>
       </div>
-
-      <!-- TIMELINE -->
-      <div class="section-label"><div class="section-num">3</div><span>Timeline</span></div>
+      <div class="section-label"><div class="section-num">4</div><span>Timeline</span></div>
       <div class="field-row">
         <div class="field">
           <label>Deadline <span class="required">*</span></label>
@@ -352,42 +388,31 @@
                 <span id="calMonthLabel"></span>
                 <button onclick="changeMonth(1)">›</button>
               </div>
-              <div class="cal-weekdays">
-                <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-              </div>
+              <div class="cal-weekdays"><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
               <div class="cal-days" id="calDays"></div>
             </div>
           </div>
         </div>
         <div class="field">
           <label>Priority</label>
-          <select id="priority">
-            <option value="Normal">Normal</option>
-            <option value="High">High</option>
-            <option value="Urgent">Urgent</option>
-          </select>
+          <select id="priority"><option value="Normal">Normal</option><option value="High">High</option><option value="Urgent">Urgent</option></select>
         </div>
       </div>
       <div class="cal-note">📅 After submitting, add this deadline to <strong>Google Calendar, Outlook, or Apple Calendar</strong> from the task view.</div>
       <button class="submit-btn" id="submitBtn" onclick="submitForm()">Submit Request →</button>
     </div>
-
     <div class="success-screen" id="successScreen">
       <div class="success-icon">✓</div>
       <h2>Request Submitted!</h2>
-      <p id="successMsg">Your brief is saved. Head to Dashboard to track it and send email summaries.</p>
+      <p>Saved and synced. Open the task in Dashboard to email both parties and add to calendar.</p>
       <button class="cta-btn" onclick="showPage('dashboard')">View Dashboard →</button>
     </div>
   </div>
 </div>
 
-<!-- DASHBOARD -->
 <div id="page-dashboard" class="page">
   <div class="dashboard">
-    <div class="dash-header">
-      <h2>Your Requests</h2>
-      <button class="cta-btn" style="font-size:0.8rem;padding:10px 18px" onclick="showPage('form')">+ New Request</button>
-    </div>
+    <div class="dash-header"><h2>Your Requests</h2><button class="cta-btn" style="font-size:0.8rem;padding:10px 18px" onclick="showPage('form')">+ New Request</button></div>
     <div class="dash-stats">
       <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value sv-a" id="statTotal">0</div></div>
       <div class="stat-card"><div class="stat-label">Due This Week</div><div class="stat-value sv-w" id="statWeek">0</div></div>
@@ -397,16 +422,8 @@
     <div class="export-panel">
       <div class="export-left">
         <span class="export-label">📥 Export to Excel</span>
-        <select id="exportPeriod">
-          <option value="week">This Week</option>
-          <option value="month" selected>This Month</option>
-          <option value="year">This Year</option>
-          <option value="all">All Time</option>
-        </select>
-        <select id="exportStatus">
-          <option value="done">Completed only</option>
-          <option value="all">All tasks</option>
-        </select>
+        <select id="exportPeriod"><option value="week">This Week</option><option value="month" selected>This Month</option><option value="year">This Year</option><option value="all">All Time</option></select>
+        <select id="exportStatus"><option value="done">Completed only</option><option value="all">All tasks</option></select>
         <input type="text" id="exportName" placeholder="Your name (optional)" style="width:160px">
       </div>
       <button class="export-btn" onclick="exportExcel()">⬇ Download Excel</button>
@@ -416,17 +433,17 @@
       <button class="filter-tab" onclick="setFilter('urgent',this)">🔥 Urgent</button>
       <button class="filter-tab" onclick="setFilter('upcoming',this)">Upcoming</button>
       <button class="filter-tab" onclick="setFilter('done',this)">✓ Completed</button>
+
     </div>
+    <div id="approvalsSection"></div>
     <div class="tasks-list" id="tasksList"></div>
   </div>
 </div>
 
-<!-- TASK MODAL -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
   <div class="modal"><button class="modal-close" onclick="closeModalBtn()">✕</button><div id="modalBody"></div></div>
 </div>
 
-<!-- APPROVAL POPUP -->
 <div class="approval-popup" id="approvalPopup">
   <div class="ap-label">⚡ Quick Approval Needed</div>
   <div class="ap-task" id="apTaskName"></div>
@@ -441,347 +458,572 @@
   </div>
 </div>
 
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Saving...</div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- NOTIFICATION PERMISSION MODAL -->
+<div class="notif-modal-overlay" id="notifModal">
+  <div class="notif-modal">
+    <div class="notif-icon">🔔</div>
+    <h2>Enable Notifications — <span style="color:var(--accent2)">Don't Miss a Thing</span></h2>
+    <p>Your request was submitted. But if you don't enable notifications right now, you could miss a deadline reminder or an approval — and that's on you.</p>
+    <div class="notif-reasons">
+      <div class="notif-reason">
+        <span class="notif-reason-icon">⚡</span>
+        <div class="notif-reason-text">
+          <strong>Instant approval alerts</strong>
+          <span>The moment your boss approves or requests changes, you'll know — even if the tab is closed.</span>
+        </div>
+      </div>
+      <div class="notif-reason">
+        <span class="notif-reason-icon">🔥</span>
+        <div class="notif-reason-text">
+          <strong>Deadline warnings before it's too late</strong>
+          <span>You'll get alerted 2 days before a task is due. Miss the notification, miss the deadline.</span>
+        </div>
+      </div>
+      <div class="notif-reason">
+        <span class="notif-reason-icon">📋</span>
+        <div class="notif-reason-text">
+          <strong>New request confirmations</strong>
+          <span>Every time a request is submitted, you get immediate confirmation it went through.</span>
+        </div>
+      </div>
+    </div>
+    <button class="notif-enable-btn" onclick="enableNotifications()">🔔 Enable Notifications Now</button>
+    <br>
+    <button class="notif-skip" onclick="dismissNotifModal()">Skip for now — I'll risk missing updates</button>
+  </div>
+</div>
+
 <script>
-  let tasks = JSON.parse(localStorage.getItem('gdd_tasks') || '[]');
-  let currentFilter = 'all';
-  let editingId = null;
-  let calDate = new Date();
-  let selectedDate = null;
-  let pendingApproval = null; // { taskId, qaId }
+const SURL='https://amkaurdwiopsyzvmbhak.supabase.co';
+const SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFta2F1cmR3aW9wc3l6dm1iaGFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NDkzMTcsImV4cCI6MjA4ODQyNTMxN30.iMpb7F-USed98gw-pogW1CwvAJmmr0u2Q-EH0HNu4Sc';
+const db=supabase.createClient(SURL,SKEY);
+let tasks=[],currentFilter='all',editingId=null,calDate=new Date(),selectedDate=null,pendingFiles=[],pendingApproval=null;
 
-  function save() { localStorage.setItem('gdd_tasks', JSON.stringify(tasks)); }
+async function loadTasks(){
+  const{data,error}=await db.from('tasks').select('*').order('deadline',{ascending:true});
+  if(error){console.error(error);toast('⚠️','Error','Could not load tasks.',false);return;}
+  tasks=data||[];renderDashboard();checkReminders();
+}
 
-  function showPage(id) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    document.getElementById('page-' + id).classList.add('active');
-    ['home','form','dashboard'].forEach((n,i) => { if(n===id) document.querySelectorAll('.nav-tab')[i].classList.add('active'); });
-    if (id === 'dashboard') renderDashboard();
+function getFileIcon(n){
+  const e=n.split('.').pop().toLowerCase();
+  if(['jpg','jpeg','png','gif','webp','svg'].includes(e))return'🖼️';
+  if(['mp4','mov','avi','mkv','webm'].includes(e))return'🎬';
+  if(['mp3','wav','aac','m4a'].includes(e))return'🎵';
+  if(e==='pdf')return'📄';
+  if(['doc','docx'].includes(e))return'📝';
+  if(['xls','xlsx','csv'].includes(e))return'📊';
+  if(['ppt','pptx'].includes(e))return'📋';
+  if(['zip','rar','7z'].includes(e))return'🗜️';
+  return'📎';
+}
+function fmtBytes(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';if(b<1073741824)return(b/1048576).toFixed(1)+' MB';return(b/1073741824).toFixed(1)+' GB';}
+
+function handleFileSelect(files){
+  [...files].forEach(f=>{if(!pendingFiles.find(x=>x.name===f.name&&x.size===f.size))pendingFiles.push(f);});
+  renderFileList();
+}
+function renderFileList(){
+  document.getElementById('fileList').innerHTML=pendingFiles.map((f,i)=>`<div class="file-item"><span class="file-item-icon">${getFileIcon(f.name)}</span><span class="file-item-name">${f.name}</span><span class="file-item-size">${fmtBytes(f.size)}</span><button class="file-item-remove" onclick="removeFile(${i})">✕</button></div>`).join('');
+}
+function removeFile(i){pendingFiles.splice(i,1);renderFileList();}
+
+async function uploadFiles(taskId){
+  if(!pendingFiles.length)return[];
+  const urls=[],prog=document.getElementById('uploadProgress'),bar=document.getElementById('uploadProgressBar');
+  prog.style.display='block';
+  for(let i=0;i<pendingFiles.length;i++){
+    const f=pendingFiles[i],path=`${taskId}/${Date.now()}-${f.name}`;
+    bar.style.width=`${Math.round((i/pendingFiles.length)*100)}%`;
+    const{error}=await db.storage.from('attachments').upload(path,f,{upsert:true});
+    if(error){toast('⚠️','Upload error',`Could not upload ${f.name}`,false);continue;}
+    const{data:ud}=db.storage.from('attachments').getPublicUrl(path);
+    urls.push({name:f.name,url:ud.publicUrl,size:f.size});
+    bar.style.width=`${Math.round(((i+1)/pendingFiles.length)*100)}%`;
   }
+  prog.style.display='none';bar.style.width='0%';return urls;
+}
 
-  // CALENDAR
-  function toggleCal() { const p = document.getElementById('calPopup'); p.classList.toggle('open'); if(p.classList.contains('open')) renderCal(); }
-  function closeCal() { document.getElementById('calPopup').classList.remove('open'); }
-  function changeMonth(d) { calDate.setMonth(calDate.getMonth()+d); renderCal(); }
-  function renderCal() {
-    const now = new Date(); now.setHours(0,0,0,0);
-    const y = calDate.getFullYear(), m = calDate.getMonth();
-    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    document.getElementById('calMonthLabel').textContent = `${months[m]} ${y}`;
-    const first = new Date(y,m,1).getDay(), dim = new Date(y,m+1,0).getDate();
-    let html = '';
-    for(let i=0;i<first;i++) html+=`<div class="cal-day empty"></div>`;
-    for(let d=1;d<=dim;d++){
-      const td=new Date(y,m,d), past=td<now, today=td.toDateString()===now.toDateString();
-      const sel=selectedDate&&td.toDateString()===selectedDate.toDateString();
-      html+=`<div class="cal-day${past?' past':''}${today?' today':''}${sel?' selected':''}" onclick="${past?'':'pickDay('+y+','+m+','+d+')'}">${d}</div>`;
+const zone=document.getElementById('uploadZone');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover');});
+zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('dragover');handleFileSelect(e.dataTransfer.files);});
+
+function toggleCal(){const p=document.getElementById('calPopup');p.classList.toggle('open');if(p.classList.contains('open'))renderCal();}
+function closeCal(){document.getElementById('calPopup').classList.remove('open');}
+function changeMonth(d){calDate.setMonth(calDate.getMonth()+d);renderCal();}
+function renderCal(){
+  const now=new Date();now.setHours(0,0,0,0);
+  const y=calDate.getFullYear(),m=calDate.getMonth();
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent=`${months[m]} ${y}`;
+  const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
+  let html='';
+  for(let i=0;i<first;i++)html+=`<div class="cal-day empty"></div>`;
+  for(let d=1;d<=dim;d++){
+    const td=new Date(y,m,d),past=td<now,today=td.toDateString()===now.toDateString();
+    const sel=selectedDate&&td.toDateString()===selectedDate.toDateString();
+    html+=`<div class="cal-day${past?' past':''}${today?' today':''}${sel?' selected':''}" onclick="${past?'':'pickDay('+y+','+m+','+d+')'}">${d}</div>`;
+  }
+  document.getElementById('calDays').innerHTML=html;
+}
+function pickDay(y,m,d){
+  selectedDate=new Date(y,m,d);
+  const pad=n=>String(n).padStart(2,'0');
+  document.getElementById('deadline').value=selectedDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('deadline').dataset.iso=`${y}-${pad(m+1)}-${pad(d)}`;
+  closeCal();
+}
+document.addEventListener('click',e=>{const w=document.querySelector('.datepicker-wrap');if(w&&!w.contains(e.target))closeCal();});
+
+function v(id){return document.getElementById(id).value.trim();}
+function validEmail(e){return/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);}
+
+async function submitForm(){
+  const rName=v('requesterName'),rEmail=v('requesterEmail'),aName=v('assigneeName'),aEmail=v('assigneeEmail');
+  const name=v('taskName'),mtype=v('mtypeSelect'),notes=v('notes');
+  const deadline=document.getElementById('deadline').dataset.iso||'';
+  if(!rName||!rEmail||!aName||!aEmail){toast('⚠️','Missing fields','Fill in all name and email fields.',false);return;}
+  if(!validEmail(rEmail)||!validEmail(aEmail)){toast('⚠️','Invalid email','Check your email addresses.',false);return;}
+  if(!v('department')){toast('⚠️','Missing fields','Select a department.',false);return;}
+  if(!name){toast('⚠️','Missing fields','Add a task name.',false);return;}
+  if(!mtype){toast('⚠️','Missing fields','Select a marketing type.',false);return;}
+  if(!notes){toast('⚠️','Missing fields','Add some notes.',false);return;}
+  if(!deadline){toast('⚠️','Missing fields','Pick a deadline.',false);return;}
+  const btn=document.getElementById('submitBtn');btn.disabled=true;
+  showLoading(editingId?'Updating...':'Saving...');
+  try{
+    const tempId=editingId||Date.now();
+    let attachments=[];
+    if(pendingFiles.length){showLoading('Uploading '+pendingFiles.length+' file'+(pendingFiles.length>1?'s':'')+'...');attachments=await uploadFiles(tempId);}
+    if(editingId){
+      const ex=tasks.find(t=>t.id===editingId);
+      const merged=[...(ex.attachments||[]),...attachments];
+      await db.from('tasks').update({requester_name:rName,requester_email:rEmail,assignee_name:aName,assignee_email:aEmail,name,mtype,notes,deadline,priority:v('priority'),department:v('department'),attachments:merged,updated_at:new Date().toISOString()}).eq('id',editingId);
+      toast('✓','Updated!','Changes saved.',true);
+    }else{
+      await db.from('tasks').insert([{requester_name:rName,requester_email:rEmail,assignee_name:aName,assignee_email:aEmail,name,mtype,notes,deadline,priority:v('priority'),department:v('department'),status:'active',attachments,questions:[],created_at:new Date().toISOString()}]);
+      sendBrowserNotif('📋 New Request',`"${name}" assigned to ${aName}`);
+      toast('✓','Submitted!','Saved and synced.',true);
+      if(Notification.permission==='default'&&!localStorage.getItem('notifDismissed')) setTimeout(showNotifModal,1200);
     }
-    document.getElementById('calDays').innerHTML=html;
-  }
-  function pickDay(y,m,d) {
-    selectedDate=new Date(y,m,d);
-    const pad=n=>String(n).padStart(2,'0');
-    document.getElementById('deadline').value=selectedDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-    document.getElementById('deadline').dataset.iso=`${y}-${pad(m+1)}-${pad(d)}`;
-    closeCal();
-  }
-  document.addEventListener('click',e=>{ const w=document.querySelector('.datepicker-wrap'); if(w&&!w.contains(e.target)) closeCal(); });
-
-  function v(id) { return document.getElementById(id).value.trim(); }
-  function validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
-
-  function submitForm() {
-    const rName=v('requesterName'), rEmail=v('requesterEmail');
-    const aName=v('assigneeName'), aEmail=v('assigneeEmail');
-    const name=v('taskName'), mtype=v('mtypeSelect'), notes=v('notes');
-    const deadline=document.getElementById('deadline').dataset.iso||'';
-
-    if(!rName||!rEmail||!aName||!aEmail) { toast('⚠️','Missing fields','Please fill in all name and email fields.',false); return; }
-    if(!validEmail(rEmail)||!validEmail(aEmail)) { toast('⚠️','Invalid email','Please check your email addresses.',false); return; }
-    if(!name) { toast('⚠️','Missing fields','Please add a task name.',false); return; }
-    if(!mtype) { toast('⚠️','Missing fields','Please select a marketing type.',false); return; }
-    if(!notes) { toast('⚠️','Missing fields','Please add some notes.',false); return; }
-    if(!deadline) { toast('⚠️','Missing fields','Please pick a deadline.',false); return; }
-
-    if(editingId) {
-      const idx=tasks.findIndex(t=>t.id===editingId);
-      if(idx>-1) { tasks[idx]={...tasks[idx],requesterName:rName,requesterEmail:rEmail,assigneeName:aName,assigneeEmail:aEmail,name,mtype,notes,deadline,priority:v('priority'),updatedAt:new Date().toISOString()}; save(); }
-      editingId=null;
-    } else {
-      tasks.push({id:Date.now(),requesterName:rName,requesterEmail:rEmail,assigneeName:aName,assigneeEmail:aEmail,name,mtype,notes,deadline,priority:v('priority'),createdAt:new Date().toISOString(),status:'active',questions:[]});
-      save();
-      // Browser notification for new request
-      sendBrowserNotif('📋 New Request', `"${name}" has been assigned to ${aName}`);
-    }
-    document.getElementById('successMsg').textContent = editingId ? `Brief updated. Email the assignee from the task view.` : `Brief saved. Open the task in Dashboard to email both parties.`;
+    pendingFiles=[];renderFileList();editingId=null;
+    await loadTasks();
     document.getElementById('formFields').classList.add('hidden');
     document.getElementById('successScreen').classList.add('active');
     document.getElementById('formTitle').textContent='New Request';
     document.getElementById('submitBtn').textContent='Submit Request →';
-    setTimeout(resetForm, 300);
-  }
+    setTimeout(()=>{
+      resetForm();
+      document.getElementById('formFields').classList.remove('hidden');
+      document.getElementById('successScreen').classList.remove('active');
+      showPage('dashboard');
+    },2000);
+  }catch(e){console.error(e);toast('⚠️','Error',e.message||'Something went wrong.',false);}
+  finally{hideLoading();btn.disabled=false;}
+}
 
-  function resetForm() {
-    ['requesterName','requesterEmail','assigneeName','assigneeEmail','taskName','notes'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('mtypeSelect').value='';
-    document.getElementById('priority').value='Normal';
-    const dl=document.getElementById('deadline'); dl.value=''; dl.dataset.iso='';
-    selectedDate=null; calDate=new Date();
-    document.getElementById('formFields').classList.remove('hidden');
-    document.getElementById('successScreen').classList.remove('active');
-    editingId=null;
-  }
+function resetForm(){
+  ['requesterName','requesterEmail','assigneeName','assigneeEmail','taskName','notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mtypeSelect').value='';document.getElementById('priority').value='Normal';document.getElementById('department').value='';
+  const dl=document.getElementById('deadline');dl.value='';dl.dataset.iso='';
+  selectedDate=null;calDate=new Date();pendingFiles=[];renderFileList();
+  editingId=null;
+}
 
-  function daysUntil(d) { const n=new Date(); n.setHours(0,0,0,0); return Math.round((new Date(d)-n)/86400000); }
-  function getStatus(t) { if(t.status==='done') return 'done'; return daysUntil(t.deadline)<=3?'urgent':'upcoming'; }
-  function fmtDate(d) { return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
-  function setFilter(f,el) { currentFilter=f; document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active')); el.classList.add('active'); renderDashboard(); }
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  ['home','form','dashboard'].forEach((n,i)=>{if(n===id)document.querySelectorAll('.nav-tab')[i].classList.add('active');});
+  if(id==='dashboard')renderDashboard();
+}
 
-  function renderDashboard() {
-    const now=new Date(); now.setHours(0,0,0,0);
-    const wk=new Date(now); wk.setDate(wk.getDate()+7);
-    document.getElementById('statTotal').textContent=tasks.length;
-    document.getElementById('statWeek').textContent=tasks.filter(t=>t.status!=='done'&&new Date(t.deadline)<=wk).length;
-    document.getElementById('statUrgent').textContent=tasks.filter(t=>t.status!=='done'&&daysUntil(t.deadline)<=3).length;
-    document.getElementById('statDone').textContent=tasks.filter(t=>t.status==='done').length;
-    let list=currentFilter==='all'?tasks:tasks.filter(t=>getStatus(t)===currentFilter);
-    list=[...list].sort((a,b)=>{ if(a.status==='done'&&b.status!=='done') return 1; if(b.status==='done'&&a.status!=='done') return -1; return new Date(a.deadline)-new Date(b.deadline); });
-    const el=document.getElementById('tasksList');
-    if(!list.length){ el.innerHTML=`<div class="empty-state"><div class="big">📋</div><h3>${tasks.length?'No tasks here':'No requests yet'}</h3><p>${tasks.length?'No tasks in this category.':'Create your first request to get started.'}</p></div>`; return; }
-    el.innerHTML=list.map(t=>{
-      const s=getStatus(t),d=daysUntil(t.deadline);
-      const dl=t.status==='done'?'Completed':d<0?`${Math.abs(d)}d overdue`:d===0?'Due today!':d===1?'Due tomorrow':`${d} days left`;
-      const sc=s==='done'?'sb-done':s==='urgent'?'sb-urgent':'sb-upcoming';
-      const st=s==='done'?'✓ Done':s==='urgent'?'🔥 Urgent':'Upcoming';
-      const pending=(t.questions||[]).filter(q=>q.status==='pending').length;
-      return `<div class="task-card ${s}" onclick="openTask(${t.id})">
-        <div class="task-top">
-          <div class="task-name">${t.name}${pending?` <span style="font-size:0.7rem;color:var(--accent);font-family:DM Sans">⚡ ${pending} pending</span>`:''}</div>
-          <div class="task-badges"><span class="type-badge">${t.mtype||'Marketing'}</span><span class="status-badge ${sc}">${st}</span></div>
+function daysUntil(d){const n=new Date();n.setHours(0,0,0,0);return Math.round((new Date(d)-n)/86400000);}
+function getStatus(t){if(t.status==='done')return'done';return daysUntil(t.deadline)<=3?'urgent':'upcoming';}
+function fmtDate(d){return new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function setFilter(f,el){
+  currentFilter=f;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderDashboard();
+}
+
+function renderDashboard(){
+  renderApprovals();
+  const now=new Date();now.setHours(0,0,0,0);
+  const wk=new Date(now);wk.setDate(wk.getDate()+7);
+  document.getElementById('statTotal').textContent=tasks.length;
+  document.getElementById('statWeek').textContent=tasks.filter(t=>t.status!=='done'&&new Date(t.deadline)<=wk).length;
+  document.getElementById('statUrgent').textContent=tasks.filter(t=>t.status!=='done'&&daysUntil(t.deadline)<=3).length;
+  document.getElementById('statDone').textContent=tasks.filter(t=>t.status==='done').length;
+  let list=currentFilter==='all'?tasks:tasks.filter(t=>getStatus(t)===currentFilter);
+  list=[...list].sort((a,b)=>{if(a.status==='done'&&b.status!=='done')return 1;if(b.status==='done'&&a.status!=='done')return -1;return new Date(a.deadline)-new Date(b.deadline);});
+  const el=document.getElementById('tasksList');
+  if(!list.length){el.innerHTML=`<div class="empty-state"><div class="big">📋</div><h3>${tasks.length?'No tasks here':'No requests yet'}</h3><p>${tasks.length?'No tasks in this category.':'Create your first request to get started.'}</p></div>`;return;}
+  el.innerHTML=list.map(t=>{
+    const s=getStatus(t),d=daysUntil(t.deadline);
+    const dl=t.status==='done'?'Completed':d<0?`${Math.abs(d)}d overdue`:d===0?'Due today!':d===1?'Due tomorrow':`${d} days left`;
+    const sc=s==='done'?'sb-done':s==='urgent'?'sb-urgent':'sb-upcoming';
+    const st=s==='done'?'✓ Done':s==='urgent'?'🔥 Urgent':'Upcoming';
+    const pending=(t.questions||[]).filter(q=>q.status==='pending').length;
+    const files=(t.attachments||[]).length;
+    const pendingSpan=pending?' <span style="font-size:0.7rem;color:var(--accent)">⚡ '+pending+' pending</span>':'';
+    const filesSpan=files?' <span style="font-size:0.7rem;color:var(--muted)">📎 '+files+'</span>':'';
+    return'<div class="task-card '+s+'" onclick="openTask('+t.id+')"><div class="task-top"><div class="task-name">'+t.name+pendingSpan+filesSpan+'</div><div class="task-badges"><span class="type-badge">'+(t.mtype||'Marketing')+'</span><span class="status-badge '+sc+'">'+st+'</span></div></div><div class="task-meta"><div class="task-meta-item">📅 '+fmtDate(t.deadline)+' · '+dl+'</div><div class="task-meta-item">🏢 '+(t.department||'Marketing')+'</div><div class="task-meta-item">👤 '+(t.assignee_name||'Unassigned')+'</div><div class="task-meta-item">⚡ '+t.priority+'</div></div></div>';
+  }).join('');
+}
+
+function buildBody(t){return`Marketing Brief: ${t.name}\nType: ${t.mtype}\nDeadline: ${fmtDate(t.deadline)}\nPriority: ${t.priority}\n\nNotes:\n${t.notes}\n\nRequested by: ${t.requester_name} (${t.requester_email})\nAssigned to: ${t.assignee_name} (${t.assignee_email})\n${t.updated_at?'Updated: '+new Date(t.updated_at).toLocaleString():'Created: '+new Date(t.created_at).toLocaleString()}`;}
+function gcalUrl(t){const d=t.deadline.replace(/-/g,'');return`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('[Brief] '+t.name)}&dates=${d}/${d}&details=${encodeURIComponent(buildBody(t))}`;}
+function downloadICS(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const d=t.deadline.replace(/-/g,''),now=new Date().toISOString().replace(/[-:.]/g,'').slice(0,15)+'Z';
+  const ics=`BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:gdd-${t.id}@getdebriefd\nDTSTAMP:${now}\nDTSTART;VALUE=DATE:${d}\nDTEND;VALUE=DATE:${d}\nSUMMARY:[Brief] ${t.name}\nDESCRIPTION:${buildBody(t).replace(/\n/g,'\\n')}\nEND:VEVENT\nEND:VCALENDAR`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'}));a.download=`brief-${t.name.replace(/\s+/g,'-')}.ics`;a.click();
+}
+
+function openTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const d=daysUntil(t.deadline),s=getStatus(t);
+  const remind=(s==='urgent'&&t.status!=='done')?`<div class="remind-bar">🔔 ${d<=0?'This task is overdue!':'Only '+d+' day'+(d===1?'':'s')+' left — act fast!'}</div>`:'';
+  const subject=encodeURIComponent(`${t.updated_at?'[Updated]':'[New]'} Brief: ${t.name}`);
+  const body=encodeURIComponent(buildBody(t));
+  const atts=t.attachments||[];
+  const attHtml=atts.length?'<div class="attach-list">'+atts.map(a=>'<a class="attach-item" href="'+a.url+'" target="_blank"><span>'+getFileIcon(a.name)+'</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.name+'</span><span style="font-size:0.72rem;color:var(--muted)">'+fmtBytes(a.size)+'</span></a>').join('')+'</div>':'<span style="font-size:0.8rem;color:var(--muted)">No attachments.</span>';
+  const qs=t.questions||[];
+  const qHtml=qs.length?qs.map(q=>{
+    const noteHtml=q.note?'<div style="font-size:0.8rem;color:var(--muted);margin-top:4px;font-style:italic">📝 '+q.note+'</div>':'';
+    const askAtts=(q.attachments||[]).length?'<div class="qa-attachment-view">'+q.attachments.map(a=>'<a href="'+a.url+'" target="_blank">'+getFileIcon(a.name)+' '+a.name+'</a>').join('')+'</div>':'';
+    const respAtts=(q.response_attachments||[]).length?'<div class="qa-attachment-view">'+q.response_attachments.map(a=>'<a href="'+a.url+'" target="_blank">'+getFileIcon(a.name)+' '+a.name+'</a>').join('')+'</div>':'';
+    const respNote=q.response_note?'<div style="font-size:0.8rem;color:var(--muted);margin-top:4px;font-style:italic">📝 '+q.response_note+'</div>':'';
+    const ans=q.status==='pending'?'<div class="qa-item-answer qa-pending">⏳ Awaiting response...</div>':q.status==='approved'?'<div class="qa-item-answer qa-approved">✓ Approved</div>'+respNote+respAtts:'<div class="qa-item-answer qa-changes">✎ '+q.response+'</div>'+respNote+respAtts;
+    return '<div class="qa-item"><div class="qa-item-q">❓ '+q.text+'</div>'+noteHtml+askAtts+'<div class="qa-item-meta">Asked by '+q.asked_by+' · '+new Date(q.asked_at).toLocaleDateString()+'</div>'+ans+'</div>';
+  }).join(''):'<div style="font-size:0.8rem;color:var(--muted)">No questions yet.</div>';
+  document.getElementById('modalBody').innerHTML=`
+    <div class="modal-title">${t.name}</div>
+    <div class="modal-sub">${t.mtype} · ${t.assignee_name} · ${fmtDate(t.deadline)}</div>
+    ${remind}
+    <div class="sb"><div class="sb-lbl">Notes</div><div class="sb-val">${t.notes}</div></div>
+    <div class="sb"><div class="sb-lbl">Deadline</div><div class="sb-val">${fmtDate(t.deadline)} · ${d<0?Math.abs(d)+' days overdue':d===0?'Due today':d+' days left'}</div></div>
+    <div class="sb"><div class="sb-lbl">Priority</div><div class="sb-val">${t.priority}</div></div>
+    <div class="sb"><div class="sb-lbl">Department</div><div class="sb-val">${t.department||'Marketing'}</div></div>
+    <div class="sb"><div class="sb-lbl">People</div><div class="sb-val"><strong>From:</strong> ${t.requester_name} — ${t.requester_email}<br><strong>To:</strong> ${t.assignee_name} — ${t.assignee_email}</div></div>
+    <div class="sb"><div class="sb-lbl">📎 Attachments</div><div class="sb-val">${attHtml}</div></div>
+    <div class="sb"><div class="sb-lbl">📅 Add to Calendar</div><div class="cal-btns"><a class="cal-btn" href="${gcalUrl(t)}" target="_blank">🗓 Google Calendar</a><button class="cal-btn" onclick="downloadICS(${t.id})">📆 Outlook / Apple</button></div></div>
+    <div class="sb"><div class="sb-lbl">📬 Email Brief</div><div class="cal-btns"><a class="cal-btn" href="mailto:${t.assignee_email}?subject=${subject}&body=${body}">✉️ Email Assignee</a><a class="cal-btn" href="mailto:${t.requester_email}?subject=${subject}&body=${body}">✉️ Email Requester</a></div></div>
+    <div class="qa-section">
+      <div class="qa-title">⚡ Quick Approvals</div>
+      <div class="qa-list">${qHtml}</div>
+      <div class="qa-input-row"><input type="text" id="qaInput" placeholder="Ask a question that needs quick approval..."><button class="qa-send-btn" onclick="sendQuestion(${t.id})">Send ⚡</button></div>
+      <div class="qa-attach-row">
+        <textarea class="qa-note-input" id="qaNoteInput" placeholder="Add a note to your question (optional)..."></textarea>
+        <div class="qa-file-zone" id="qaFileZone">
+          <input type="file" id="qaFileInput" multiple onchange="handleQAFiles(this.files,'ask')">
+          📎 Attach files to your question (any type, any size)
         </div>
-        <div class="task-meta">
-          <div class="task-meta-item">📅 ${fmtDate(t.deadline)} · ${dl}</div>
-          <div class="task-meta-item">👤 ${t.assigneeName||'Unassigned'}</div>
-          <div class="task-meta-item">⚡ ${t.priority}</div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  function buildBody(t) {
-    return `Marketing Brief: ${t.name}\nType: ${t.mtype}\nDeadline: ${fmtDate(t.deadline)}\nPriority: ${t.priority}\n\nNotes:\n${t.notes}\n\nRequested by: ${t.requesterName} (${t.requesterEmail})\nAssigned to: ${t.assigneeName} (${t.assigneeEmail})\n${t.updatedAt?'Updated: '+new Date(t.updatedAt).toLocaleString():'Created: '+new Date(t.createdAt).toLocaleString()}`;
-  }
-
-  function gcalUrl(t) {
-    const d=t.deadline.replace(/-/g,'');
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('[Brief] '+t.name)}&dates=${d}/${d}&details=${encodeURIComponent(buildBody(t))}`;
-  }
-
-  function downloadICS(id) {
-    const t=tasks.find(x=>x.id===id); if(!t) return;
-    const d=t.deadline.replace(/-/g,''), now=new Date().toISOString().replace(/[-:.]/g,'').slice(0,15)+'Z';
-    const ics=`BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nUID:gdd-${t.id}@getdebriefd\nDTSTAMP:${now}\nDTSTART;VALUE=DATE:${d}\nDTEND;VALUE=DATE:${d}\nSUMMARY:[Brief] ${t.name}\nDESCRIPTION:${buildBody(t).replace(/\n/g,'\\n')}\nEND:VEVENT\nEND:VCALENDAR`;
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); a.download=`brief-${t.name.replace(/\s+/g,'-')}.ics`; a.click();
-  }
-
-  function openTask(id) {
-    const t=tasks.find(x=>x.id===id); if(!t) return;
-    const d=daysUntil(t.deadline), s=getStatus(t);
-    const remind=(s==='urgent'&&t.status!=='done')?`<div class="remind-bar">🔔 ${d<=0?'This task is overdue!':'Only '+d+' day'+(d===1?'':'s')+' left!'}</div>`:'';
-    const subject=encodeURIComponent(`${t.updatedAt?'[Updated]':'[New]'} Brief: ${t.name}`);
-    const body=encodeURIComponent(buildBody(t));
-    const qs=(t.questions||[]);
-    const qHtml=qs.length?qs.map((q,i)=>`
-      <div class="qa-item">
-        <div class="qa-item-q">❓ ${q.text}</div>
-        <div class="qa-item-meta">Asked by ${q.askedBy} · ${new Date(q.askedAt).toLocaleDateString()}</div>
-        ${q.status==='pending'?'<div class="qa-item-answer qa-pending">⏳ Awaiting response...</div>':q.status==='approved'?`<div class="qa-item-answer qa-approved">✓ Approved</div>`:`<div class="qa-item-answer qa-changes">✎ ${q.response}</div>`}
-      </div>`).join(''):'<div style="font-size:0.8rem;color:var(--muted)">No questions yet.</div>';
-
-    document.getElementById('modalBody').innerHTML=`
-      <div class="modal-title">${t.name}</div>
-      <div class="modal-sub">${t.mtype} · ${t.assigneeName} · ${fmtDate(t.deadline)}</div>
-      ${remind}
-      <div class="sb"><div class="sb-lbl">Notes</div><div class="sb-val">${t.notes}</div></div>
-      <div class="sb"><div class="sb-lbl">Deadline</div><div class="sb-val">${fmtDate(t.deadline)} · ${d<0?Math.abs(d)+' days overdue':d===0?'Due today':d+' days left'}</div></div>
-      <div class="sb"><div class="sb-lbl">Priority</div><div class="sb-val">${t.priority}</div></div>
-      <div class="sb"><div class="sb-lbl">People</div><div class="sb-val"><strong>From:</strong> ${t.requesterName} — ${t.requesterEmail}<br><strong>To:</strong> ${t.assigneeName} — ${t.assigneeEmail}</div></div>
-      <div class="sb">
-        <div class="sb-lbl">📅 Add to Calendar</div>
-        <div class="cal-btns">
-          <a class="cal-btn" href="${gcalUrl(t)}" target="_blank">🗓 Google Calendar</a>
-          <button class="cal-btn" onclick="downloadICS(${t.id})">📆 Outlook / Apple</button>
-        </div>
+        <div class="qa-file-list" id="qaFileList"></div>
       </div>
-      <div class="sb">
-        <div class="sb-lbl">📬 Email Brief</div>
-        <div class="cal-btns">
-          <a class="cal-btn" href="mailto:${t.assigneeEmail}?subject=${subject}&body=${body}">✉️ Email Assignee</a>
-          <a class="cal-btn" href="mailto:${t.requesterEmail}?subject=${subject}&body=${body}">✉️ Email Requester</a>
-        </div>
-      </div>
+    </div>
+    <div class="modal-actions">
+      ${t.status!=='done'?`<button class="submit-btn" style="margin:0;flex:1;padding:11px" onclick="markDone(${t.id})">✓ Mark as Done</button>`:'<div style="color:var(--success);font-weight:700;padding:11px 0">✓ Completed</div>'}
+      ${t.status!=='done'?`<button class="btn-sec" onclick="editTask(${t.id})">✏️ Edit</button>`:''}
+      <button class="btn-sec btn-del" onclick="deleteTask(${t.id})">🗑 Delete</button>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('active');
+}
 
-      <div class="qa-section">
-        <div class="qa-title">⚡ Quick Approvals</div>
-        <div class="qa-list">${qHtml}</div>
-        <div class="qa-input-row">
-          <input type="text" id="qaInput" placeholder="Ask a question that needs approval...">
-          <button class="qa-send-btn" onclick="sendQuestion(${t.id})">Send ⚡</button>
-        </div>
-      </div>
+async function sendQuestion(taskId){
+  const input=document.getElementById('qaInput'),text=input.value.trim();if(!text)return;
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  if(!t.questions)t.questions=[];
+  const qaId=Date.now();
+  showLoading('Sending question...');
+  let attachments=[];
+  if(qaAskFiles.length) attachments=await uploadQAFiles(qaAskFiles,taskId,qaId);
+  const note=document.getElementById('qaNoteInput')?document.getElementById('qaNoteInput').value.trim():'';
+  const qa={id:qaId,text,note,attachments,asked_by:t.requester_name,asked_at:new Date().toISOString(),status:'pending'};
+  t.questions.push(qa);
+  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
+  input.value='';
+  if(document.getElementById('qaNoteInput')) document.getElementById('qaNoteInput').value='';
+  qaAskFiles=[];
+  hideLoading();
+  showApprovalPopup(taskId,qa.id);
+  toast('⚡','Question sent!',t.assignee_name+' has been notified.',true);
+  openTask(taskId);
+}
 
-      <div class="modal-actions" style="margin-top:16px">
-        ${t.status!=='done'?`<button class="submit-btn" style="margin:0;flex:1;padding:11px" onclick="markDone(${t.id})">✓ Mark as Done</button>`:'<div style="color:var(--success);font-weight:700;padding:11px 0">✓ Completed</div>'}
-        ${t.status!=='done'?`<button class="btn-sec" onclick="editTask(${t.id})">✏️ Edit</button>`:''}
-        <button class="btn-sec btn-del" onclick="deleteTask(${t.id})">🗑 Delete</button>
-      </div>`;
-    document.getElementById('modalOverlay').classList.add('active');
+function showApprovalPopup(taskId,qaId){
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  const qa=(t.questions||[]).find(q=>q.id===qaId);if(!qa||qa.status!=='pending')return;
+  pendingApproval={taskId,qaId};
+  document.getElementById('apTaskName').textContent=`Task: ${t.name}`;
+  document.getElementById('apQuestion').textContent=qa.text;
+  document.getElementById('apChangesInput').style.display='none';
+  document.getElementById('apChangesText').value='';
+  document.getElementById('approvalPopup').classList.add('active');
+  sendBrowserNotif('⚡ Approval Needed',qa.text);
+}
+function showChangesInput(){document.getElementById('apChangesInput').style.display='block';}
+
+async function respondApproval(type){
+  if(!pendingApproval)return;
+  const{taskId,qaId}=pendingApproval;
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  const qa=(t.questions||[]).find(q=>q.id===qaId);if(!qa)return;
+  if(type==='approved'){qa.status='approved';qa.response='Approved';}
+  else{qa.response=document.getElementById('apChangesText').value.trim()||'Changes requested.';qa.status='changes';}
+  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
+  document.getElementById('approvalPopup').classList.remove('active');pendingApproval=null;
+  toast(type==='approved'?'✓':'✎',type==='approved'?'Approved!':'Changes requested',type==='approved'?'Response saved.':qa.response,type==='approved');
+  sendBrowserNotif(type==='approved'?'✓ Approved':'✎ Changes Requested',type==='approved'?`Approved on "${t.name}"`:`Feedback: ${qa.response}`);
+  renderDashboard();
+}
+
+function sendBrowserNotif(title,body){
+  if(!('Notification'in window))return;
+  if(Notification.permission==='granted')new Notification(title,{body,icon:'https://fav.farm/📋'});
+  else if(Notification.permission!=='denied')Notification.requestPermission().then(p=>{if(p==='granted')new Notification(title,{body});});
+}
+
+function editTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  editingId=id;closeModalBtn();
+  document.getElementById('requesterName').value=t.requester_name||'';
+  document.getElementById('requesterEmail').value=t.requester_email||'';
+  document.getElementById('assigneeName').value=t.assignee_name||'';
+  document.getElementById('assigneeEmail').value=t.assignee_email||'';
+  document.getElementById('taskName').value=t.name||'';
+  document.getElementById('mtypeSelect').value=t.mtype||'';
+  document.getElementById('department').value=t.department||'';
+  document.getElementById('notes').value=t.notes||'';
+  document.getElementById('priority').value=t.priority||'Normal';
+  if(t.deadline){const dl=document.getElementById('deadline');dl.dataset.iso=t.deadline;dl.value=fmtDate(t.deadline);selectedDate=new Date(t.deadline+'T00:00:00');calDate=new Date(t.deadline+'T00:00:00');}
+  document.getElementById('formTitle').textContent='Edit Request';
+  document.getElementById('formSubtitle').textContent='Make your changes below.';
+  document.getElementById('submitBtn').textContent='Save Changes →';
+  document.getElementById('formFields').classList.remove('hidden');
+  document.getElementById('successScreen').classList.remove('active');
+  showPage('form');
+}
+
+async function markDone(id){
+  await db.from('tasks').update({status:'done'}).eq('id',id);
+  closeModalBtn();await loadTasks();toast('🎉','Task completed!','Great work.',true);
+}
+
+async function deleteTask(id){
+  if(!confirm('Delete this task permanently?'))return;
+  const t=tasks.find(x=>x.id===id);
+  if(t&&t.attachments&&t.attachments.length){
+    const paths=t.attachments.map(a=>{try{const u=new URL(a.url);return u.pathname.split('/attachments/')[1];}catch{return null;}}).filter(Boolean);
+    if(paths.length)await db.storage.from('attachments').remove(paths);
   }
+  await db.from('tasks').delete().eq('id',id);
+  closeModalBtn();await loadTasks();toast('🗑','Deleted','Task removed.',false);
+}
 
-  // QUICK APPROVAL
-  function sendQuestion(taskId) {
-    const input=document.getElementById('qaInput');
-    const text=input.value.trim(); if(!text) return;
-    const t=tasks.find(x=>x.id===taskId); if(!t) return;
-    if(!t.questions) t.questions=[];
-    const qa={ id:Date.now(), text, askedBy:t.requesterName, askedAt:new Date().toISOString(), status:'pending' };
-    t.questions.push(qa); save();
-    input.value='';
-    // Show approval popup (simulates boss receiving it)
-    showApprovalPopup(taskId, qa.id);
-    toast('⚡','Question sent!',`${t.assigneeName} has been notified.`,true);
-    openTask(taskId);
-  }
+function closeModal(e){if(e.target===document.getElementById('modalOverlay'))closeModalBtn();}
+function closeModalBtn(){document.getElementById('modalOverlay').classList.remove('active');}
+function showLoading(msg='Loading...'){document.getElementById('loadingText').textContent=msg;document.getElementById('loadingOverlay').classList.add('active');}
+function hideLoading(){document.getElementById('loadingOverlay').classList.remove('active');}
 
-  function showApprovalPopup(taskId, qaId) {
-    const t=tasks.find(x=>x.id===taskId); if(!t) return;
-    const qa=t.questions.find(q=>q.id===qaId); if(!qa) return;
-    pendingApproval={taskId,qaId};
-    document.getElementById('apTaskName').textContent=`Task: ${t.name}`;
-    document.getElementById('apQuestion').textContent=qa.text;
-    document.getElementById('apChangesInput').style.display='none';
-    document.getElementById('apChangesText').value='';
-    document.getElementById('approvalPopup').classList.add('active');
-    sendBrowserNotif('⚡ Approval Needed', qa.text);
-  }
+function toast(icon,title,msg,ok=true){
+  const c=document.getElementById('toastContainer');
+  const el=document.createElement('div');el.className=`toast${ok?' ok':''}`;
+  el.innerHTML=`<span class="ti">${icon}</span><div class="tt"><strong>${title}</strong>${msg}</div>`;
+  c.appendChild(el);setTimeout(()=>el.remove(),4500);
+}
 
-  function showChangesInput() {
-    document.getElementById('apChangesInput').style.display='block';
-  }
-
-  function respondApproval(type) {
-    if(!pendingApproval) return;
-    const {taskId,qaId}=pendingApproval;
-    const t=tasks.find(x=>x.id===taskId); if(!t) return;
-    const qa=t.questions.find(q=>q.id===qaId); if(!qa) return;
-    if(type==='approved') {
-      qa.status='approved'; qa.response='Approved';
-      toast('✓','Approved!','Your question has been approved.',true);
-    } else {
-      const changes=document.getElementById('apChangesText').value.trim()||'Changes requested.';
-      qa.status='changes'; qa.response=changes;
-      toast('✎','Changes requested',changes,false);
-    }
-    save();
-    document.getElementById('approvalPopup').classList.remove('active');
-    pendingApproval=null;
-    sendBrowserNotif(type==='approved'?'✓ Approved':'✎ Changes Requested', type==='approved'?`Your question on "${t.name}" was approved.`:`Feedback: ${qa.response}`);
-    renderDashboard();
-  }
-
-  // BROWSER NOTIFICATIONS
-  function sendBrowserNotif(title, body) {
-    if(!('Notification' in window)) return;
-    if(Notification.permission==='granted') {
-      new Notification(title,{body,icon:'https://fav.farm/📋'});
-    } else if(Notification.permission!=='denied') {
-      Notification.requestPermission().then(p=>{ if(p==='granted') new Notification(title,{body,icon:'https://fav.farm/📋'}); });
-    }
-  }
-
-  function editTask(id) {
-    const t=tasks.find(x=>x.id===id); if(!t) return;
-    editingId=id; closeModalBtn();
-    document.getElementById('requesterName').value=t.requesterName||'';
-    document.getElementById('requesterEmail').value=t.requesterEmail||'';
-    document.getElementById('assigneeName').value=t.assigneeName||'';
-    document.getElementById('assigneeEmail').value=t.assigneeEmail||'';
-    document.getElementById('taskName').value=t.name||'';
-    document.getElementById('mtypeSelect').value=t.mtype||'';
-    document.getElementById('notes').value=t.notes||'';
-    document.getElementById('priority').value=t.priority||'Normal';
-    if(t.deadline){ const dl=document.getElementById('deadline'); dl.dataset.iso=t.deadline; dl.value=fmtDate(t.deadline); selectedDate=new Date(t.deadline+'T00:00:00'); calDate=new Date(t.deadline+'T00:00:00'); }
-    document.getElementById('formTitle').textContent='Edit Request';
-    document.getElementById('formSubtitle').textContent='Make your changes below.';
-    document.getElementById('submitBtn').textContent='Save Changes →';
-    document.getElementById('formFields').classList.remove('hidden');
-    document.getElementById('successScreen').classList.remove('active');
-    showPage('form');
-  }
-
-  function markDone(id) {
-    const t=tasks.find(x=>x.id===id); if(t){t.status='done';save();}
-    closeModalBtn(); renderDashboard();
-    toast('🎉','Task completed!','Great work.',true);
-  }
-
-  function deleteTask(id) {
-    if(!confirm('Delete this task?')) return;
-    tasks=tasks.filter(t=>t.id!==id); save();
-    closeModalBtn(); renderDashboard();
-  }
-
-  function closeModal(e) { if(e.target===document.getElementById('modalOverlay')) closeModalBtn(); }
-  function closeModalBtn() { document.getElementById('modalOverlay').classList.remove('active'); }
-
-  function toast(icon,title,msg,ok=true) {
-    const c=document.getElementById('toastContainer');
-    const el=document.createElement('div'); el.className=`toast${ok?' ok':''}`;
-    el.innerHTML=`<span class="ti">${icon}</span><div class="tt"><strong>${title}</strong>${msg}</div>`;
-    c.appendChild(el); setTimeout(()=>el.remove(),4500);
-  }
-
-  function exportExcel() {
-    const period=document.getElementById('exportPeriod').value;
-    const statusFilter=document.getElementById('exportStatus').value;
-    const exportName=document.getElementById('exportName').value.trim();
-    const now=new Date(); now.setHours(0,0,0,0);
-    const start=new Date(now);
-    if(period==='week') start.setDate(now.getDate()-now.getDay());
-    else if(period==='month') start.setDate(1);
-    else if(period==='year'){start.setMonth(0);start.setDate(1);}
-    else start.setFullYear(2000);
-    let filtered=tasks.filter(t=>{ const d=new Date(t.deadline+'T00:00:00'); if(d<start) return false; if(statusFilter==='done'&&t.status!=='done') return false; return true; });
-    if(!filtered.length){toast('⚠️','No tasks found','No tasks match this period and status.',false);return;}
-    const labels={week:'This Week',month:'This Month',year:'This Year',all:'All Time'};
-    const headers=['Task Name','Marketing Type','Deadline','Priority','Status','Notes','Requested By','Requester Email','Assigned To','Assignee Email','Created'];
-    const rows=filtered.map(t=>[t.name,t.mtype,fmtDate(t.deadline),t.priority,t.status==='done'?'Completed':'In Progress',t.notes||'',t.requesterName||'',t.requesterEmail||'',t.assigneeName||'',t.assigneeEmail||'',t.createdAt?new Date(t.createdAt).toLocaleDateString():'']);
-    const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
-    a.download=`${exportName?exportName+' - ':''}Marketing Tasks - ${labels[period]}.csv`; a.click();
-    toast('🎉','Export ready!',`${filtered.length} task${filtered.length===1?'':'s'} exported.`,true);
-  }
-
-  function checkReminders() {
-    // Deadline reminders
-    tasks.filter(t=>t.status!=='done'&&daysUntil(t.deadline)<=2).forEach((t,i)=>{
-      const d=daysUntil(t.deadline);
-      setTimeout(()=>{ toast('🔔','Deadline reminder',`"${t.name}" — ${d<=0?'overdue!':d+' day'+(d===1?'':'s')+' left'}`,false); sendBrowserNotif('🔔 Deadline Reminder',`"${t.name}" is ${d<=0?'overdue':'due in '+d+' day'+(d===1?'':'s')}`); },1500+i*2000);
-    });
-    // Pending approval reminders
-    tasks.forEach(t=>{ (t.questions||[]).filter(q=>q.status==='pending').forEach((q,i)=>{ setTimeout(()=>showApprovalPopup(t.id,q.id),3000+i*1000); }); });
-  }
-
-  // Request browser notification permission on load
-  window.addEventListener('load',()=>{
-    calDate=new Date();
-    if('Notification' in window && Notification.permission==='default') {
-      Notification.requestPermission();
-    }
-    checkReminders();
+function exportExcel(){
+  const period=document.getElementById('exportPeriod').value,statusFilter=document.getElementById('exportStatus').value,exportName=document.getElementById('exportName').value.trim();
+  const now=new Date();now.setHours(0,0,0,0);const start=new Date(now);
+  if(period==='week')start.setDate(now.getDate()-now.getDay());
+  else if(period==='month')start.setDate(1);
+  else if(period==='year'){start.setMonth(0);start.setDate(1);}
+  else start.setFullYear(2000);
+  let filtered=tasks.filter(t=>{const d=new Date(t.deadline+'T00:00:00');if(d<start)return false;if(statusFilter==='done'&&t.status!=='done')return false;return true;});
+  if(!filtered.length){toast('⚠️','No tasks found','No tasks match this filter.',false);return;}
+  const labels={week:'This Week',month:'This Month',year:'This Year',all:'All Time'};
+  const headers=['Task Name','Marketing Type','Department','Deadline','Priority','Status','Requested By','Requester Email','Assigned To','Assignee Email','Notes','Attachment 1','Attachment 2','Attachment 3','Attachment 4','Attachment 5','Created'];
+  const rows=filtered.map(t=>{
+    const atts=(t.attachments||[]);
+    const attCols=[0,1,2,3,4].map(i=>atts[i]?atts[i].url:'');
+    return [t.name,t.mtype||'',t.department||'Marketing',fmtDate(t.deadline),t.priority,t.status==='done'?'Completed':'In Progress',t.requester_name||'',t.requester_email||'',t.assignee_name||'',t.assignee_email||'',t.notes||'',...attCols,t.created_at?new Date(t.created_at).toLocaleDateString():''];
   });
+  const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download=`${exportName?exportName+' - ':''}Marketing Tasks - ${labels[period]}.csv`;a.click();
+  toast('🎉','Export ready!',`${filtered.length} task${filtered.length===1?'':'s'} exported.`,true);
+}
+
+function renderApprovals(){
+  const section=document.getElementById('approvalsSection');
+  if(!section) return;
+  const pending=[];
+  tasks.forEach(t=>{
+    (t.questions||[]).filter(q=>q.status==='pending').forEach(q=>{
+      pending.push({task:t, q});
+    });
+  });
+  if(!pending.length){
+    section.innerHTML='';
+    return;
+  }
+  const cardsHtml=pending.map((item,i)=>{
+    const{task:t,q}=item;
+    return '<div class="qa-card" id="qacard-'+i+'">'
+      +'<div class="qa-card-task">'+t.name+' · '+fmtDate(t.deadline)+'</div>'
+      +'<div class="qa-card-q">❓ '+q.text+'</div>'
+      +'<div class="qa-card-meta">Asked by '+q.asked_by+' · '+new Date(q.asked_at).toLocaleDateString()+'</div>'
+      +'<div class="qa-card-btns">'
+      +'<button class="qa-approve-btn" onclick="showQuickApprove('+i+')">✓ Approve</button>'
+      +'<button class="qa-changes-btn" onclick="showQuickFeedback('+i+')">✎ Request Changes</button>'
+      +'</div>'
+      +'<div class="qa-feedback-row" id="qaapp-'+i+'">'
+      +'<textarea id="qaapptxt-'+i+'" placeholder="Add a note with your approval (optional)..."></textarea>'
+      +'<div class="qa-file-zone"><input type="file" multiple onchange="handleQAResponseFiles(this.files,'+i+',true)">📎 Attach files (optional)</div>'
+      +'<div class="qa-file-list" id="qaAppFileList-'+i+'"></div>'
+      +'<button class="qa-submit-btn" style="background:var(--success);color:#0c0c0f" onclick="quickApprove('+t.id+','+q.id+','+i+')">✓ Confirm Approval</button>'
+      +'</div>'
+      +'<div class="qa-feedback-row" id="qafb-'+i+'">'
+      +'<textarea id="qatxt-'+i+'" placeholder="What needs to change? Add notes..."></textarea>'
+      +'<div class="qa-file-zone"><input type="file" multiple onchange="handleQAResponseFiles(this.files,'+i+')">📎 Attach files to response (any type, any size)</div>'
+      +'<div class="qa-file-list" id="qaRespFileList-'+i+'"></div>'
+      +'<button class="qa-submit-btn" onclick="quickChanges('+t.id+','+q.id+','+i+')">Send Feedback</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+  section.innerHTML='<div class="approvals-section"><div class="approvals-section-header"><div class="approvals-section-title">⚡ Pending Approvals <span class="approvals-count-badge">'+pending.length+'</span></div></div>'+cardsHtml+'</div>';
+}
+
+// QA file staging
+let qaAskFiles=[], qaRespFiles={}, qaAppFiles={};
+
+function handleQAFiles(files,type){
+  [...files].forEach(f=>{ if(!qaAskFiles.find(x=>x.name===f.name)) qaAskFiles.push(f); });
+  renderQAFileList('qaFileList', qaAskFiles, 'ask');
+}
+function handleQAResponseFiles(files,idx,isApproval=false){
+  if(!qaRespFiles[idx]) qaRespFiles[idx]=[];
+  if(!qaAppFiles[idx]) qaAppFiles[idx]=[];
+  const arr = isApproval ? qaAppFiles[idx] : qaRespFiles[idx];
+  [...files].forEach(f=>{ if(!arr.find(x=>x.name===f.name)) arr.push(f); });
+  const listId = isApproval ? 'qaAppFileList-'+idx : 'qaRespFileList-'+idx;
+  renderQAFileList(listId, arr, isApproval?'app-'+idx:'resp-'+idx);
+}
+function renderQAFileList(listId, arr, key){
+  const el=document.getElementById(listId); if(!el) return;
+  el.innerHTML=arr.map((f,i)=>{
+    return '<div class="qa-file-item"><span>'+getFileIcon(f.name)+'</span><span class="qa-file-item-name">'+f.name+'</span><span style="font-size:0.72rem;color:var(--muted)">'+fmtBytes(f.size)+'</span><button class="qa-file-remove" onclick="removeQAFile(\'' +key+ '\','+i+',\''+listId+'\')">✕</button></div>';
+  }).join('');
+}
+function removeQAFile(key,i,listId){
+  if(key==='ask'){qaAskFiles.splice(i,1);renderQAFileList(listId,qaAskFiles,'ask');}
+  else if(key.startsWith('app-')){const idx=key.split('-')[1];qaAppFiles[idx].splice(i,1);renderQAFileList(listId,qaAppFiles[idx],'app-'+idx);}
+  else if(key.startsWith('resp-')){const idx=key.split('-')[1];qaRespFiles[idx].splice(i,1);renderQAFileList(listId,qaRespFiles[idx],'resp-'+idx);}
+}
+
+async function uploadQAFiles(files, taskId, qaId){
+  if(!files||!files.length) return [];
+  const urls=[];
+  for(const f of files){
+    const path='qa/'+taskId+'/'+qaId+'/'+Date.now()+'-'+f.name;
+    const{error}=await db.storage.from('attachments').upload(path,f,{upsert:true});
+    if(error){toast('⚠️','Upload error','Could not upload '+f.name,false);continue;}
+    const{data:ud}=db.storage.from('attachments').getPublicUrl(path);
+    urls.push({name:f.name,url:ud.publicUrl,size:f.size});
+  }
+  return urls;
+}
+
+function showQuickApprove(i){
+  const row=document.getElementById('qaapp-'+i);
+  if(row) row.classList.toggle('open');
+}
+
+function showQuickFeedback(i){
+  const row=document.getElementById('qafb-'+i);
+  if(row) row.classList.toggle('open');
+}
+
+async function quickApprove(taskId,qaId,cardIdx){
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  const qa=(t.questions||[]).find(q=>q.id===qaId);if(!qa)return;
+  showLoading('Saving approval...');
+  const note=document.getElementById('qaapptxt-'+cardIdx)?document.getElementById('qaapptxt-'+cardIdx).value.trim():'';
+  let attachments=[];
+  if(qaAppFiles[cardIdx]&&qaAppFiles[cardIdx].length) attachments=await uploadQAFiles(qaAppFiles[cardIdx],taskId,qaId);
+  qa.status='approved';qa.response='Approved';qa.response_note=note;qa.response_attachments=attachments;
+  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
+  delete qaAppFiles[cardIdx];
+  hideLoading();
+  toast('✓','Approved!','Response saved.',true);
+  sendBrowserNotif('✓ Approved','Your question on "'+t.name+'" was approved.');
+  await loadTasks();
+}
+
+async function quickChanges(taskId,qaId,cardIdx){
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  const qa=(t.questions||[]).find(q=>q.id===qaId);if(!qa)return;
+  showLoading('Sending feedback...');
+  const txt=document.getElementById('qatxt-'+cardIdx)?document.getElementById('qatxt-'+cardIdx).value.trim()||'Changes requested.':'Changes requested.';
+  let attachments=[];
+  if(qaRespFiles[cardIdx]&&qaRespFiles[cardIdx].length) attachments=await uploadQAFiles(qaRespFiles[cardIdx],taskId,qaId);
+  qa.status='changes';qa.response=txt;qa.response_attachments=attachments;
+  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
+  delete qaRespFiles[cardIdx];
+  hideLoading();
+  toast('✎','Changes requested',txt,false);
+  sendBrowserNotif('✎ Changes Requested','Feedback on "'+t.name+'": '+txt);
+  await loadTasks();
+}
+
+function checkReminders(){
+  tasks.filter(t=>t.status!=='done'&&daysUntil(t.deadline)<=2).forEach((t,i)=>{
+    const d=daysUntil(t.deadline);
+    setTimeout(()=>{toast('🔔','Deadline reminder',`"${t.name}" — ${d<=0?'overdue!':d+' day'+(d===1?'':'s')+' left'}`,false);sendBrowserNotif('🔔 Deadline Reminder',`"${t.name}" ${d<=0?'is overdue':'due in '+d+' day'+(d===1?'':'s')}`);},1500+i*2000);
+  });
+  tasks.forEach(t=>{(t.questions||[]).filter(q=>q.status==='pending').forEach((q,i)=>{setTimeout(()=>showApprovalPopup(t.id,q.id),3000+i*1000);});});
+}
+
+function showNotifModal(){
+  if('Notification' in window && Notification.permission === 'default'){
+    document.getElementById('notifModal').classList.add('active');
+  }
+}
+
+function dismissNotifModal(){
+  document.getElementById('notifModal').classList.remove('active');
+  localStorage.setItem('notifDismissed','1');
+}
+
+function enableNotifications(){
+  document.getElementById('notifModal').classList.remove('active');
+  if(!('Notification' in window)){toast('⚠️','Not supported','Your browser does not support notifications.',false);return;}
+  Notification.requestPermission().then(p=>{
+    if(p==='granted'){
+      new Notification('🔔 Notifications enabled!',{body:'You will now receive deadline alerts and approval updates.',icon:'https://fav.farm/📋'});
+      toast('✓','Notifications on!','You will not miss a thing.',true);
+    } else {
+      toast('⚠️','Blocked','Enable notifications in your browser settings.',false);
+    }
+  });
+}
+
+window.addEventListener('load',()=>{
+  calDate=new Date();
+  // Notifications requested via modal after first submit
+  loadTasks();
+});
 </script>
 </body>
 </html>
