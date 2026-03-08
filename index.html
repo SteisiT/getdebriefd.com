@@ -129,6 +129,11 @@
   .task-card.urgent::before{background:var(--accent2);}
   .task-card.upcoming::before{background:var(--accent);}
   .task-card.done::before{background:var(--success);}
+  .task-card-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+  .task-card-edit-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:8px;font-size:0.78rem;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;font-weight:600;}
+  .task-card-edit-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .task-card-delete-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:7px 14px;border-radius:8px;font-size:0.78rem;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;}
+  .task-card-delete-btn:hover{border-color:var(--accent2);color:var(--accent2);}
   .task-card:hover{border-color:rgba(232,255,71,0.3);transform:translateX(3px);}
   .task-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:7px;gap:10px;}
   .task-name{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;}
@@ -281,6 +286,13 @@
   .home-notif-banner p{font-size:0.8rem;color:var(--muted);line-height:1.6;margin-bottom:10px;}
   .home-notif-btn{background:var(--accent2);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;transition:all 0.2s;}
   .home-notif-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(255,107,71,0.3);}
+  .changes-card{background:var(--surface);border:1px solid rgba(255,107,71,0.3);border-radius:16px;margin-bottom:24px;overflow:hidden;}
+  .changes-card .approvals-card-header{border-left:3px solid var(--accent2);}
+  .changes-card .approvals-card-title{color:var(--accent2);}
+  .changes-card-body{display:none;padding:0 22px 22px;border-top:1px solid rgba(255,107,71,0.2);}
+  .changes-card-body.open{display:block;animation:fadeUp 0.18s ease;}
+  .changes-history-title{font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent2);margin-bottom:10px;padding-top:18px;}
+  .changes-empty{font-size:0.82rem;color:var(--muted);padding-top:16px;}
   .approvals-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:24px;overflow:hidden;}
   .approvals-card-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;cursor:pointer;transition:background 0.15s;}
   .approvals-card-header:hover{background:var(--surface2);}
@@ -767,6 +779,7 @@ async function submitForm(){
       await db.from('tasks').insert([{requester_name:rName,requester_email:rEmail,assignee_name:aName,assignee_email:aEmail,name,mtype,notes,deadline,priority:v('priority'),department:v('department'),status:'active',attachments,questions:[],created_at:new Date().toISOString()}]);
       sendBrowserNotif('📋 New Request',`"${name}" assigned to ${aName}`);
       toast('✓','Submitted!','Saved and synced.',true);
+      sendNewRequestEmails({name,mtype:v('mtypeSelect'),department:v('department'),deadline,priority:v('priority'),notes,requester_name:rName,requester_email:rEmail,assignee_name:aName,assignee_email:aEmail});
       if(Notification.permission==='default'&&!localStorage.getItem('notifDismissed')) setTimeout(showNotifModal,1200);
     }
     pendingFiles=[];renderFileList();editingId=null;
@@ -838,7 +851,7 @@ function renderDashboard(){
     const files=(t.attachments||[]).length;
     const pendingSpan=pending?' <span style="font-size:0.7rem;color:var(--accent)">⚡ '+pending+' pending</span>':'';
     const filesSpan=files?' <span style="font-size:0.7rem;color:var(--muted)">📎 '+files+'</span>':'';
-    return'<div class="task-card '+s+'" onclick="openTask('+t.id+')"><div class="task-top"><div class="task-name">'+t.name+pendingSpan+filesSpan+'</div><div class="task-badges"><span class="type-badge">'+(t.mtype||'Marketing')+'</span><span class="status-badge '+sc+'">'+st+'</span></div></div><div class="task-meta"><div class="task-meta-item">📅 '+fmtDate(t.deadline)+' · '+dl+'</div><div class="task-meta-item">🏢 '+(t.department||'Marketing')+'</div><div class="task-meta-item">👤 '+(t.assignee_name||'Unassigned')+'</div><div class="task-meta-item">⚡ '+t.priority+'</div></div></div>';
+    return'<div class="task-card '+s+'" onclick="openTask('+t.id+')"><div class="task-top"><div class="task-name">'+t.name+pendingSpan+filesSpan+'</div><div class="task-badges"><span class="type-badge">'+(t.mtype||'Marketing')+'</span><span class="status-badge '+sc+'">'+st+'</span></div></div><div class="task-meta"><div class="task-meta-item">📅 '+fmtDate(t.deadline)+' · '+dl+'</div><div class="task-meta-item">🏢 '+(t.department||'Marketing')+'</div><div class="task-meta-item">👤 '+(t.assignee_name||'Unassigned')+'</div><div class="task-meta-item">⚡ '+t.priority+'</div></div><div class="task-card-actions" onclick="event.stopPropagation()"><button class="task-card-edit-btn" onclick="editTask('+t.id+')">✎ Edit</button><button class="task-card-delete-btn" onclick="deleteTask('+t.id+')">🗑 Delete</button>'+(t.status!=='done'?'<button class="task-card-edit-btn" style="margin-left:auto" onclick="markDone('+t.id+')">✓ Mark Done</button>':'')+'</div></div>';
   }).join('');
 }
 
@@ -1148,6 +1161,79 @@ async function quickChanges(taskId,qaId,cardIdx){
   await loadTasks();
 }
 
+// ── EMAIL via NETLIFY FUNCTION ───────────────────────────
+async function sendEmail({toEmail, toName, subject, body}){
+  try{
+    await fetch('/.netlify/functions/send-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({toEmail,toName,subject,body})
+    });
+  }catch(e){console.error('Email error:',e);}
+}
+
+async function sendNewRequestEmails(t){
+  const body = `A new marketing request has been submitted.
+
+Task: ${t.name}
+Type: ${t.mtype||''}
+Department: ${t.department||''}
+Deadline: ${fmtDate(t.deadline)}
+Priority: ${t.priority}
+
+Notes:
+${t.notes||'None'}
+
+Requested by: ${t.requester_name} (${t.requester_email})
+Assigned to: ${t.assignee_name} (${t.assignee_email})
+
+View it here: https://getdebriefd.com
+
+— GetDebriefD`;
+  // Email assignee
+  await sendEmail({toEmail:t.assignee_email,toName:t.assignee_name,subject:`[New Request] ${t.name} — Due ${fmtDate(t.deadline)}`,body});
+  // CC requester
+  const reqBody = 'Your request has been submitted and the assignee has been notified.\n\n' + body;
+  await sendEmail({toEmail:t.requester_email,toName:t.requester_name,subject:'[New Request Submitted] '+t.name,body:reqBody});
+}
+
+async function sendApprovalEmail(t, qa){
+  const body = `An approval has been requested.
+
+Task: ${t.name}
+Deadline: ${fmtDate(t.deadline)}
+
+Question:
+${qa.text}
+
+Notes:
+${qa.note||'None'}
+
+Requested by: ${qa.asked_by}
+
+Log in to approve or request changes: https://getdebriefd.com
+
+— GetDebriefD`;
+  await sendEmail({toEmail:t.assignee_email,toName:t.assignee_name,subject:`[Approval Needed] ${t.name}`,body});
+  const approvalCopy = 'You sent an approval request. Here is a copy:\n\n' + body;
+  await sendEmail({toEmail:t.requester_email,toName:t.requester_name,subject:'[Approval Sent] '+t.name,body:approvalCopy});
+}
+
+async function sendApprovalResponseEmail(t, qa){
+  const approved = qa.status === 'approved';
+  const body = `Your approval request has received a response.
+
+Task: ${t.name}
+Question: ${qa.text}
+Response: ${approved ? '✓ Approved' : '✎ Changes Requested'}
+${qa.response_note ? 'Note: '+qa.response_note : ''}
+
+Log in to view details: https://getdebriefd.com
+
+— GetDebriefD`;
+  await sendEmail({toEmail:t.requester_email,toName:t.requester_name,subject:`[${approved?'Approved':'Changes Requested'}] ${t.name}`,body});
+}
+
 // ── APPROVALS CARD ────────────────────────────────────────
 let approvalFiles=[];
 
@@ -1214,6 +1300,7 @@ async function sendApprovalRequest(){
     document.getElementById('approvalTaskSelect').value='';
     document.getElementById('approvalContactPreview').classList.remove('visible');
     await loadTasks();
+    sendApprovalEmail(t, qa);
     toast('⚡','Approval request sent!','Both parties have been notified.',true);
     sendBrowserNotif('⚡ Approval Request Sent','"'+question+'" on task: '+t.name);
     renderApprovals();
