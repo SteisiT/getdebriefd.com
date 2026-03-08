@@ -1290,7 +1290,8 @@ let currentUser = null;
 
 async function initAuth(){
   const { data: { session } } = await db.auth.getSession();
-  if(session) setUser(session.user);
+  if(session){ setUser(session.user); }
+  else { clearUser(); }
   db.auth.onAuthStateChange((_event, session)=>{
     if(session){ setUser(session.user); }
     else { clearUser(); }
@@ -1302,9 +1303,14 @@ function setUser(user){
   const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
   document.getElementById('navAuth').innerHTML =
     '<div class="nav-user"><span class="nav-user-name">👤 '+name+'</span><button class="nav-logout-btn" onclick="signOut()">Log out</button></div>';
-  // If on login page redirect to dashboard
-  if(document.querySelector('#page-login.active')) showPage('dashboard');
-  else loadTasks();
+  // Update active nav tab highlight
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  // If on login page redirect to dashboard, otherwise stay and load tasks
+  if(document.querySelector('#page-login.active')){
+    showPage('dashboard');
+  } else {
+    loadTasks();
+  }
 }
 
 function clearUser(){
