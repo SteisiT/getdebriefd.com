@@ -1328,39 +1328,25 @@ async function quickChanges(taskId,qaId,cardIdx){
 }
 
 // ── EMAIL via NETLIFY FUNCTION ───────────────────────────
-async function sendEmail({toEmail, toName, subject, body}){
+async function sendEmail({toEmail, toName, subject, body, ccEmail, ccName}){
   try{
-    await fetch('/.netlify/functions/send-email',{
+    const res = await fetch('/.netlify/functions/send-email',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({toEmail,toName,subject,body})
+      body:JSON.stringify({toEmail,toName,subject,body,ccEmail,ccName})
     });
+    const data = await res.json();
+    if(!res.ok) console.error('Email failed:',data);
+    else console.log('Email sent to',toEmail);
   }catch(e){console.error('Email error:',e);}
 }
 
 async function sendNewRequestEmails(t){
-  const body = `A new marketing request has been submitted.
-
-Task: ${t.name}
-Type: ${t.mtype||''}
-Department: ${t.department||''}
-Deadline: ${fmtDate(t.deadline)}
-Priority: ${t.priority}
-
-Notes:
-${t.notes||'None'}
-
-Requested by: ${t.requester_name} (${t.requester_email})
-Assigned to: ${t.assignee_name} (${t.assignee_email})
-
-View it here: https://getdebriefd.com
-
-— GetDebriefD`;
-  // Email assignee
-  await sendEmail({toEmail:t.assignee_email,toName:t.assignee_name,subject:`[New Request] ${t.name} — Due ${fmtDate(t.deadline)}`,body});
-  // CC requester
-  const reqBody = 'Your request has been submitted and the assignee has been notified.\n\n' + body;
-  await sendEmail({toEmail:t.requester_email,toName:t.requester_name,subject:'[New Request Submitted] '+t.name,body:reqBody});
+  const body = 'A new marketing request has been submitted.\n\nTask: '+t.name+'\nType: '+(t.mtype||'')+'\nDepartment: '+(t.department||'')+'\nDeadline: '+fmtDate(t.deadline)+'\nPriority: '+t.priority+'\n\nNotes:\n'+(t.notes||'None')+'\n\nRequested by: '+t.requester_name+' ('+t.requester_email+')\nAssigned to: '+t.assignee_name+' ('+t.assignee_email+')\n\nView it here: https://getdebriefd.com\n\n— GetDebriefD';
+  // Email assignee, CC requester
+  await sendEmail({toEmail:t.assignee_email,toName:t.assignee_name,subject:'[New Request] '+t.name+' — Due '+fmtDate(t.deadline),body,ccEmail:t.requester_email,ccName:t.requester_name});
+  // Confirmation to requester
+  await sendEmail({toEmail:t.requester_email,toName:t.requester_name,subject:'[Submitted] '+t.name,body:'Your request has been submitted and '+t.assignee_name+' has been notified.\n\n'+body});
 }
 
 async function sendApprovalEmail(t, qa){
