@@ -303,6 +303,31 @@
   .changes-card-body.open{display:block;animation:fadeUp 0.18s ease;}
   .changes-history-title{font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent2);margin-bottom:10px;padding-top:18px;}
   .changes-empty{font-size:0.82rem;color:var(--muted);padding-top:16px;}
+  .approval-tabs{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:4px;margin:16px 0 12px;}
+  .approval-tab{flex:1;background:none;border:none;padding:9px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:0.84rem;color:var(--muted);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+  .approval-tab.active{background:var(--surface);color:var(--text);font-weight:700;}
+  .approval-tab-badge{background:var(--accent2);color:#fff;border-radius:100px;padding:1px 7px;font-size:0.68rem;font-weight:700;}
+  .approval-tab-panel{padding-top:4px;}
+  .inbox-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;}
+  .inbox-card.urgent-inbox{border-color:rgba(255,107,71,0.4);background:rgba(255,107,71,0.04);}
+  .inbox-card-task{font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;font-weight:600;}
+  .inbox-card-q{font-size:0.92rem;font-weight:600;margin-bottom:4px;}
+  .inbox-card-note{font-size:0.8rem;color:var(--muted);margin-bottom:8px;font-style:italic;}
+  .inbox-card-meta{font-size:0.75rem;color:var(--muted);margin-bottom:12px;}
+  .inbox-actions{display:flex;gap:8px;}
+  .inbox-approve-btn{background:var(--success);color:#0c0c0f;border:none;padding:9px 18px;border-radius:8px;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:800;cursor:pointer;transition:all 0.2s;}
+  .inbox-approve-btn:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(71,255,178,0.3);}
+  .inbox-changes-btn{background:none;border:1px solid var(--accent2);color:var(--accent2);padding:9px 18px;border-radius:8px;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.2s;}
+  .inbox-changes-btn:hover{background:rgba(255,107,71,0.08);}
+  .inbox-response-panel{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+  .inbox-response-panel.open{display:block;}
+  .sent-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;}
+  .sent-card-task{font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+  .sent-card-q{font-size:0.88rem;font-weight:600;margin-bottom:4px;}
+  .sent-card-status{display:inline-block;font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:100px;margin-top:4px;}
+  .sent-status-pending{background:rgba(232,255,71,0.1);color:var(--accent);}
+  .sent-status-approved{background:rgba(71,255,178,0.1);color:var(--success);}
+  .sent-status-changes{background:rgba(255,107,71,0.1);color:var(--accent2);}
   .approvals-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:24px;overflow:hidden;}
   .approvals-card-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;cursor:pointer;transition:background 0.15s;}
   .approvals-card-header:hover{background:var(--surface2);}
@@ -555,38 +580,57 @@
       </div>
       <div class="approvals-card-body" id="approvalsCardBody">
 
-        <!-- NEW APPROVAL REQUEST -->
-        <div class="approvals-new">
-          <div class="approvals-new-title">Send an Approval Request</div>
-          <select class="approvals-task-select" id="approvalTaskSelect" onchange="onApprovalTaskChange()">
-            <option value="">Select a task to request approval on...</option>
-          </select>
-          <div class="approvals-contact-preview" id="approvalContactPreview">
-            <div class="acp-label">Who will receive this</div>
-            <div class="acp-person"><span class="acp-role">Requester</span><span id="acp-requester"></span></div>
-            <div class="acp-person"><span class="acp-role">Assignee</span><span id="acp-assignee"></span></div>
-          </div>
-          <div class="approvals-question field">
-            <label>Your Question / What needs approval <span class="required">*</span></label>
-            <input type="text" id="approvalQuestion" placeholder="e.g. Can we proceed with the dark background version?">
-          </div>
-          <div class="approvals-note field">
-            <label>Additional Notes (optional)</label>
-            <textarea id="approvalNote" placeholder="Add context, references, or anything that helps them decide..." style="min-height:80px"></textarea>
-          </div>
-          <div class="field">
-            <label>Attach Files (optional)</label>
-            <div class="upload-zone" style="padding:16px">
-              <input type="file" id="approvalFileInput" multiple onchange="handleApprovalFiles(this.files)">
-              <div style="font-size:0.82rem;color:var(--muted)">📎 <strong style="color:var(--accent)">Click to upload</strong> or drag and drop</div>
-            </div>
-            <div class="file-list" id="approvalFileList"></div>
-          </div>
-          <button class="approvals-send-btn" id="approvalSendBtn" onclick="sendApprovalRequest()">⚡ Send Approval Request</button>
+        <!-- TABS -->
+        <div class="approval-tabs">
+          <button class="approval-tab active" id="tabInbox" onclick="switchApprovalTab('inbox')">📥 Inbox <span class="approval-tab-badge" id="inboxBadge" style="display:none">0</span></button>
+          <button class="approval-tab" id="tabSent" onclick="switchApprovalTab('sent')">📤 Sent</button>
+          <button class="approval-tab" id="tabNew" onclick="switchApprovalTab('new')">＋ New Request</button>
         </div>
 
-        <!-- PENDING APPROVALS LIST -->
-        <div class="approvals-history" id="approvalsHistory"></div>
+        <!-- INBOX — approvals sent TO you -->
+        <div class="approval-tab-panel" id="panelInbox">
+          <div id="inboxList"></div>
+        </div>
+
+        <!-- SENT — approvals you sent -->
+        <div class="approval-tab-panel" id="panelSent" style="display:none">
+          <div id="sentList"></div>
+        </div>
+
+        <!-- NEW REQUEST -->
+        <div class="approval-tab-panel" id="panelNew" style="display:none">
+          <div class="approvals-new">
+            <div class="approvals-new-title">Send an Approval Request</div>
+            <select class="approvals-task-select" id="approvalTaskSelect" onchange="onApprovalTaskChange()">
+              <option value="">Select a task to request approval on...</option>
+            </select>
+            <div class="approvals-contact-preview" id="approvalContactPreview">
+              <div class="acp-label">Who will receive this</div>
+              <div class="acp-person"><span class="acp-role">Requester</span><span id="acp-requester"></span></div>
+              <div class="acp-person"><span class="acp-role">Assignee</span><span id="acp-assignee"></span></div>
+            </div>
+            <div class="approvals-question field">
+              <label>Your Question / What needs approval <span class="required">*</span></label>
+              <input type="text" id="approvalQuestion" placeholder="e.g. Can we proceed with the dark background version?">
+            </div>
+            <div class="approvals-note field">
+              <label>Additional Notes (optional)</label>
+              <textarea id="approvalNote" placeholder="Add context, references, or anything that helps them decide..." style="min-height:80px"></textarea>
+            </div>
+            <div class="field">
+              <label>Attach Files (optional)</label>
+              <div class="upload-zone" style="padding:16px">
+                <input type="file" id="approvalFileInput" multiple onchange="handleApprovalFiles(this.files)">
+                <div style="font-size:0.82rem;color:var(--muted)">📎 <strong style="color:var(--accent)">Click to upload</strong> or drag and drop</div>
+              </div>
+              <div class="file-list" id="approvalFileList"></div>
+            </div>
+            <button class="approvals-send-btn" id="approvalSendBtn" onclick="sendApprovalRequest()">⚡ Send Approval Request</button>
+          </div>
+        </div>
+
+        <!-- LEGACY HISTORY (hidden, kept for renderApprovals compat) -->
+        <div style="display:none" id="approvalsHistory"></div>
 
       </div>
     </div>
@@ -1042,6 +1086,116 @@ function exportExcel(){
   toast('🎉','Export ready!',`${filtered.length} task${filtered.length===1?'':'s'} exported.`,true);
 }
 
+function switchApprovalTab(tab){
+  ['inbox','sent','new'].forEach(t=>{
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',t===tab);
+    document.getElementById('panel'+t.charAt(0).toUpperCase()+t.slice(1)).style.display=t===tab?'block':'none';
+  });
+  if(tab==='inbox') renderInbox();
+  if(tab==='sent') renderSent();
+  if(tab==='new') populateApprovalTaskSelect();
+}
+
+function renderInbox(){
+  const userEmail=(currentUser?.email||'').toLowerCase();
+  const inbox=[];
+  tasks.forEach(t=>{
+    (t.questions||[]).filter(q=>q.status==='pending').forEach(q=>{
+      // Inbox = questions on tasks where I am the assignee (I need to respond)
+      if((t.assignee_email||'').toLowerCase()===userEmail) inbox.push({t,q});
+    });
+  });
+  const badge=document.getElementById('inboxBadge');
+  if(badge){if(inbox.length){badge.style.display='inline';badge.textContent=inbox.length;}else{badge.style.display='none';}}
+  const el=document.getElementById('inboxList');if(!el)return;
+  if(!inbox.length){el.innerHTML='<div style="font-size:0.84rem;color:var(--muted);padding:12px 0">No approvals waiting for your response.</div>';return;}
+  el.innerHTML=inbox.map((item,i)=>{
+    const{t,q}=item;
+    const atts=(q.attachments||[]).length?'<div style="margin-top:6px">'+q.attachments.map(a=>'<a href="'+a.url+'" target="_blank" style="font-size:0.76rem;color:var(--accent);margin-right:8px">📎 '+a.name+'</a>').join('')+'</div>':'';
+    return '<div class="inbox-card">'
+      +'<div class="inbox-card-task">'+t.name+' · Due '+fmtDate(t.deadline)+'</div>'
+      +'<div class="inbox-card-q">❓ '+q.text+'</div>'
+      +(q.note?'<div class="inbox-card-note">📝 '+q.note+'</div>':'')
+      +atts
+      +'<div class="inbox-card-meta">From '+q.asked_by+' · '+new Date(q.asked_at).toLocaleDateString()+'</div>'
+      +'<div class="inbox-actions">'
+      +'<button class="inbox-approve-btn" onclick="inboxApprove('+t.id+','+q.id+','+i+')">✓ Approve</button>'
+      +'<button class="inbox-changes-btn" onclick="inboxShowChanges('+i+')">✎ Request Changes</button>'
+      +'</div>'
+      +'<div class="inbox-response-panel" id="inboxResp-'+i+'">'
+      +'<textarea id="inboxNote-'+i+'" placeholder="Add a note (optional)..." style="margin-bottom:8px;min-height:70px"></textarea>'
+      +'<div class="qa-file-zone"><input type="file" multiple onchange="handleQAResponseFiles(this.files,'+i+')">📎 Attach files</div>'
+      +'<div class="qa-file-list" id="qaRespFileList-'+i+'"></div>'
+      +'<button class="approvals-send-btn" style="margin-top:8px" onclick="inboxSendChanges('+t.id+','+q.id+','+i+')">Send Feedback</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderSent(){
+  const userEmail=(currentUser?.email||'').toLowerCase();
+  const sent=[];
+  tasks.forEach(t=>{
+    (t.questions||[]).forEach(q=>{
+      // Sent = questions where I am the requester (I asked)
+      if((t.requester_email||'').toLowerCase()===userEmail || q.asked_by===currentUser?.user_metadata?.full_name) sent.push({t,q});
+    });
+  });
+  const el=document.getElementById('sentList');if(!el)return;
+  if(!sent.length){el.innerHTML='<div style="font-size:0.84rem;color:var(--muted);padding:12px 0">No approval requests sent yet.</div>';return;}
+  el.innerHTML=sent.map(({t,q})=>{
+    const statusClass=q.status==='approved'?'sent-status-approved':q.status==='changes'?'sent-status-changes':'sent-status-pending';
+    const statusLabel=q.status==='approved'?'✓ Approved':q.status==='changes'?'✎ Changes Requested':'⏳ Awaiting Response';
+    return '<div class="sent-card">'
+      +'<div class="sent-card-task">'+t.name+'</div>'
+      +'<div class="sent-card-q">'+q.text+'</div>'
+      +'<div><span class="sent-card-status '+statusClass+'">'+statusLabel+'</span></div>'
+      +(q.response_note?'<div style="font-size:0.79rem;color:var(--muted);margin-top:6px">Response: '+q.response_note+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+async function inboxApprove(taskId,qaId,i){
+  const note=document.getElementById('inboxNote-'+i)?.value||'';
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  const qIdx=(t.questions||[]).findIndex(q=>q.id===qaId);if(qIdx===-1)return;
+  showLoading('Saving...');
+  let atts=[];
+  if(qaRespFiles[i]?.length) atts=await uploadQAFiles(qaRespFiles[i],taskId,qaId+'_resp');
+  t.questions[qIdx].status='approved';
+  t.questions[qIdx].response_note=note;
+  t.questions[qIdx].response_attachments=atts;
+  sendApprovalResponseEmail(t,t.questions[qIdx]);
+  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
+  hideLoading();
+  await loadTasks();
+  toast('✓','Approved!','Response saved.',true);
+  renderInbox();renderSent();renderApprovals();
+}
+
+function inboxShowChanges(i){
+  const panel=document.getElementById('inboxResp-'+i);
+  if(panel) panel.classList.toggle('open');
+}
+
+async function inboxSendChanges(taskId,qaId,i){
+  const note=document.getElementById('inboxNote-'+i)?.value||'';
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  const qIdx=(t.questions||[]).findIndex(q=>q.id===qaId);if(qIdx===-1)return;
+  showLoading('Saving...');
+  let atts=[];
+  if(qaRespFiles[i]?.length) atts=await uploadQAFiles(qaRespFiles[i],taskId,qaId+'_resp');
+  t.questions[qIdx].status='changes';
+  t.questions[qIdx].response_note=note;
+  t.questions[qIdx].response_attachments=atts;
+  sendApprovalResponseEmail(t,t.questions[qIdx]);
+  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
+  hideLoading();
+  await loadTasks();
+  toast('✎','Feedback sent!','Changes requested.',true);
+  renderInbox();renderSent();renderApprovals();
+}
+
 function renderApprovals(){
   const section=document.getElementById('approvalsSection');
   if(!section) return;
@@ -1239,13 +1393,16 @@ Log in to view details: https://getdebriefd.com
 
 // ── APPROVALS CARD ────────────────────────────────────────
 let approvalFiles=[];
+let qaResponseFiles={};
 
 function toggleApprovalsCard(){
   const body=document.getElementById('approvalsCardBody');
   const chev=document.getElementById('approvalsChevron');
   body.classList.toggle('open');
   chev.classList.toggle('open');
-  if(body.classList.contains('open')) populateApprovalTaskSelect();
+  if(body.classList.contains('open')){
+    switchApprovalTab('inbox');
+  }
 }
 
 function populateApprovalTaskSelect(){
@@ -1311,11 +1468,124 @@ async function sendApprovalRequest(){
   finally{hideLoading();btn.disabled=false;}
 }
 
+function switchApprovalTab(tab){
+  ['inbox','sent','new'].forEach(t=>{
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',t===tab);
+    document.getElementById('panel'+t.charAt(0).toUpperCase()+t.slice(1)).style.display=t===tab?'block':'none';
+  });
+  if(tab==='inbox') renderInbox();
+  if(tab==='sent') renderSent();
+  if(tab==='new') populateApprovalTaskSelect();
+}
+
+function renderInbox(){
+  const userEmail=(currentUser?.email||'').toLowerCase();
+  const inbox=[];
+  tasks.forEach(t=>{
+    (t.questions||[]).filter(q=>q.status==='pending').forEach(q=>{
+      // Inbox = questions on tasks where I am the assignee (I need to respond)
+      if((t.assignee_email||'').toLowerCase()===userEmail) inbox.push({t,q});
+    });
+  });
+  const badge=document.getElementById('inboxBadge');
+  if(badge){if(inbox.length){badge.style.display='inline';badge.textContent=inbox.length;}else{badge.style.display='none';}}
+  const el=document.getElementById('inboxList');if(!el)return;
+  if(!inbox.length){el.innerHTML='<div style="font-size:0.84rem;color:var(--muted);padding:12px 0">No approvals waiting for your response.</div>';return;}
+  el.innerHTML=inbox.map((item,i)=>{
+    const{t,q}=item;
+    const atts=(q.attachments||[]).length?'<div style="margin-top:6px">'+q.attachments.map(a=>'<a href="'+a.url+'" target="_blank" style="font-size:0.76rem;color:var(--accent);margin-right:8px">📎 '+a.name+'</a>').join('')+'</div>':'';
+    return '<div class="inbox-card">'
+      +'<div class="inbox-card-task">'+t.name+' · Due '+fmtDate(t.deadline)+'</div>'
+      +'<div class="inbox-card-q">❓ '+q.text+'</div>'
+      +(q.note?'<div class="inbox-card-note">📝 '+q.note+'</div>':'')
+      +atts
+      +'<div class="inbox-card-meta">From '+q.asked_by+' · '+new Date(q.asked_at).toLocaleDateString()+'</div>'
+      +'<div class="inbox-actions">'
+      +'<button class="inbox-approve-btn" onclick="inboxApprove('+t.id+','+q.id+','+i+')">✓ Approve</button>'
+      +'<button class="inbox-changes-btn" onclick="inboxShowChanges('+i+')">✎ Request Changes</button>'
+      +'</div>'
+      +'<div class="inbox-response-panel" id="inboxResp-'+i+'">'
+      +'<textarea id="inboxNote-'+i+'" placeholder="Add a note (optional)..." style="margin-bottom:8px;min-height:70px"></textarea>'
+      +'<div class="qa-file-zone"><input type="file" multiple onchange="handleQAResponseFiles(this.files,'+i+')">📎 Attach files</div>'
+      +'<div class="qa-file-list" id="qaRespFileList-'+i+'"></div>'
+      +'<button class="approvals-send-btn" style="margin-top:8px" onclick="inboxSendChanges('+t.id+','+q.id+','+i+')">Send Feedback</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderSent(){
+  const userEmail=(currentUser?.email||'').toLowerCase();
+  const sent=[];
+  tasks.forEach(t=>{
+    (t.questions||[]).forEach(q=>{
+      // Sent = questions where I am the requester (I asked)
+      if((t.requester_email||'').toLowerCase()===userEmail || q.asked_by===currentUser?.user_metadata?.full_name) sent.push({t,q});
+    });
+  });
+  const el=document.getElementById('sentList');if(!el)return;
+  if(!sent.length){el.innerHTML='<div style="font-size:0.84rem;color:var(--muted);padding:12px 0">No approval requests sent yet.</div>';return;}
+  el.innerHTML=sent.map(({t,q})=>{
+    const statusClass=q.status==='approved'?'sent-status-approved':q.status==='changes'?'sent-status-changes':'sent-status-pending';
+    const statusLabel=q.status==='approved'?'✓ Approved':q.status==='changes'?'✎ Changes Requested':'⏳ Awaiting Response';
+    return '<div class="sent-card">'
+      +'<div class="sent-card-task">'+t.name+'</div>'
+      +'<div class="sent-card-q">'+q.text+'</div>'
+      +'<div><span class="sent-card-status '+statusClass+'">'+statusLabel+'</span></div>'
+      +(q.response_note?'<div style="font-size:0.79rem;color:var(--muted);margin-top:6px">Response: '+q.response_note+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+async function inboxApprove(taskId,qaId,i){
+  const note=document.getElementById('inboxNote-'+i)?.value||'';
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  const qIdx=(t.questions||[]).findIndex(q=>q.id===qaId);if(qIdx===-1)return;
+  showLoading('Saving...');
+  let atts=[];
+  if(qaRespFiles[i]?.length) atts=await uploadQAFiles(qaRespFiles[i],taskId,qaId+'_resp');
+  t.questions[qIdx].status='approved';
+  t.questions[qIdx].response_note=note;
+  t.questions[qIdx].response_attachments=atts;
+  sendApprovalResponseEmail(t,t.questions[qIdx]);
+  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
+  hideLoading();
+  await loadTasks();
+  toast('✓','Approved!','Response saved.',true);
+  renderInbox();renderSent();renderApprovals();
+}
+
+function inboxShowChanges(i){
+  const panel=document.getElementById('inboxResp-'+i);
+  if(panel) panel.classList.toggle('open');
+}
+
+async function inboxSendChanges(taskId,qaId,i){
+  const note=document.getElementById('inboxNote-'+i)?.value||'';
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  const qIdx=(t.questions||[]).findIndex(q=>q.id===qaId);if(qIdx===-1)return;
+  showLoading('Saving...');
+  let atts=[];
+  if(qaRespFiles[i]?.length) atts=await uploadQAFiles(qaRespFiles[i],taskId,qaId+'_resp');
+  t.questions[qIdx].status='changes';
+  t.questions[qIdx].response_note=note;
+  t.questions[qIdx].response_attachments=atts;
+  sendApprovalResponseEmail(t,t.questions[qIdx]);
+  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
+  hideLoading();
+  await loadTasks();
+  toast('✎','Feedback sent!','Changes requested.',true);
+  renderInbox();renderSent();renderApprovals();
+}
+
 function renderApprovals(){
-  // Update badge
+  const userEmail=(currentUser?.email||'').toLowerCase();
+  const inboxCount=tasks.reduce((acc,t)=>acc+(t.questions||[]).filter(q=>q.status==='pending'&&(t.assignee_email||'').toLowerCase()===userEmail).length,0);
   const allPending=tasks.reduce((acc,t)=>acc+(t.questions||[]).filter(q=>q.status==='pending').length,0);
   const badge=document.getElementById('approvalsBadge');
   if(badge){if(allPending>0){badge.style.display='inline';badge.textContent=allPending;}else{badge.style.display='none';}}
+  const inboxBadge=document.getElementById('inboxBadge');
+  if(inboxBadge){if(inboxCount>0){inboxBadge.style.display='inline';inboxBadge.textContent=inboxCount;}else{inboxBadge.style.display='none';}}
   // Render history
   const hist=document.getElementById('approvalsHistory');if(!hist)return;
   const allQA=[];
