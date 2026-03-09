@@ -857,6 +857,15 @@ function showPage(id){
   if(id==='form'){
     const gb=document.getElementById('guestBanner');
     if(gb) gb.style.display=currentUser?'none':'flex';
+    // Auto-fill requester fields from logged in user
+    if(currentUser){
+      const name=currentUser.user_metadata?.full_name||currentUser.user_metadata?.name||'';
+      const email=currentUser.email||'';
+      const nameEl=document.getElementById('requesterName');
+      const emailEl=document.getElementById('requesterEmail');
+      if(nameEl&&!nameEl.value) nameEl.value=name;
+      if(emailEl&&!emailEl.value) emailEl.value=email;
+    }
   }
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
@@ -898,7 +907,7 @@ function renderDashboard(){
     const files=(t.attachments||[]).length;
     const pendingSpan=pending?' <span style="font-size:0.7rem;color:var(--accent)">⚡ '+pending+' pending</span>':'';
     const filesSpan=files?' <span style="font-size:0.7rem;color:var(--muted)">📎 '+files+'</span>':'';
-    return'<div class="task-card '+s+(hasPending?' has-pending':'')+'" onclick="openTask('+t.id+')"><div class="task-top"><div class="task-name">'+t.name+pendingSpan+filesSpan+'</div><div class="task-badges"><span class="type-badge">'+(t.mtype||'Marketing')+'</span><span class="status-badge '+sc+'">'+st+'</span></div></div><div class="task-meta"><div class="task-meta-item">📅 '+fmtDate(t.deadline)+' · '+dl+'</div><div class="task-meta-item">🏢 '+(t.department||'Marketing')+'</div><div class="task-meta-item">👤 '+(t.assignee_name||'Unassigned')+'</div><div class="task-meta-item">⚡ '+t.priority+'</div></div><div class="task-card-actions" onclick="event.stopPropagation()"><button class="task-card-edit-btn" onclick="editTask('+t.id+')">✎ Edit</button><button class="task-card-delete-btn" onclick="deleteTask('+t.id+')">🗑 Delete</button>'+(t.status!=='done'?'<button class="task-card-edit-btn" style="margin-left:auto" onclick="markDone('+t.id+')">✓ Mark Done</button>':'')+'</div></div>';
+    return'<div class="task-card '+s+(hasPending?' has-pending':'')+'" onclick="openTask('+t.id+')"><div class="task-top"><div class="task-name">'+t.name+pendingSpan+filesSpan+'</div><div class="task-badges"><span class="type-badge">'+(t.mtype||'Marketing')+'</span><span class="status-badge '+sc+'">'+st+'</span></div></div><div class="task-meta"><div class="task-meta-item">📅 '+fmtDate(t.deadline)+' · '+dl+'</div><div class="task-meta-item">🏢 '+(t.department||'Marketing')+'</div><div class="task-meta-item">👤 '+(t.assignee_name||'Unassigned')+'</div><div class="task-meta-item">⚡ '+t.priority+'</div></div><div class="task-card-actions" onclick="event.stopPropagation()"><button class="task-card-edit-btn" onclick="editTask('+t.id+')">✎ Edit</button><button class="task-card-delete-btn" onclick="deleteTask('+t.id+')">🗑 Delete</button>'+'<a class="task-card-edit-btn" href="'+gcalUrl(t)+'" target="_blank" style="text-decoration:none">🗓 Google Cal</a>'+'<button class="task-card-edit-btn" onclick="downloadICS('+t.id+')">📆 Outlook/Apple</button>'+(t.status!=='done'?'<button class="task-card-edit-btn" style="margin-left:auto;background:rgba(71,255,178,0.15);border-color:var(--success);color:var(--success)" onclick="markDone('+t.id+')">✓ Mark Done</button>':'')+'</div></div>';
   }).join('');
 }
 
