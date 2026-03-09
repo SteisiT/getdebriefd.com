@@ -129,6 +129,16 @@
   .task-card.urgent::before{background:var(--accent2);}
   .task-card.upcoming::before{background:var(--accent);}
   .task-card.done::before{background:var(--success);}
+  /* EXPORT COLLAPSED */
+  .export-collapsed{position:relative;}
+  .export-toggle-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:8px;font-size:0.78rem;cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;}
+  .export-toggle-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .export-dropdown{display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;width:280px;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,0.4);flex-direction:column;gap:8px;}
+  .export-dropdown.open{display:flex;}
+  .export-dropdown-title{font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:800;margin-bottom:4px;}
+  .export-dropdown select,.export-dropdown input{width:100%;margin:0;}
+  /* PENDING APPROVAL HIGHLIGHT */
+  .task-card.has-pending{border-left:3px solid var(--accent);background:linear-gradient(135deg,rgba(232,255,71,0.04) 0%,var(--surface) 100%);}
   .task-card-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
   .task-card-edit-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:8px;font-size:0.78rem;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all 0.2s;font-weight:600;}
   .task-card-edit-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -526,22 +536,14 @@
 
 <div id="page-dashboard" class="page">
   <div class="dashboard">
-    <div class="dash-header"><h2>Your Requests</h2><button class="cta-btn" style="font-size:0.8rem;padding:10px 18px" onclick="showPage('form')">+ New Request</button></div>
+    <div class="dash-header"><h2>Your Requests</h2><div style="display:flex;gap:8px;align-items:center"><div class="export-collapsed" id="exportCollapsed"><button class="export-toggle-btn" onclick="toggleExport()">⬇ Export</button><div class="export-dropdown" id="exportDropdown"><div class="export-dropdown-title">Export to Excel</div><select id="exportPeriod"><option value="week">This Week</option><option value="month" selected>This Month</option><option value="year">This Year</option><option value="all">All Time</option></select><select id="exportStatus"><option value="done">Completed only</option><option value="all">All tasks</option></select><input type="text" id="exportName" placeholder="Your name (optional)"><button class="export-btn" onclick="exportExcel()">⬇ Download Excel</button></div></div><button class="cta-btn" style="font-size:0.8rem;padding:10px 18px" onclick="showPage('form')">+ New Request</button></div></div>
     <div class="dash-stats">
       <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value sv-a" id="statTotal">0</div></div>
       <div class="stat-card"><div class="stat-label">Due This Week</div><div class="stat-value sv-w" id="statWeek">0</div></div>
       <div class="stat-card"><div class="stat-label">Urgent</div><div class="stat-value sv-w" id="statUrgent">0</div></div>
       <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value sv-g" id="statDone">0</div></div>
     </div>
-    <div class="export-panel">
-      <div class="export-left">
-        <span class="export-label">📥 Export to Excel</span>
-        <select id="exportPeriod"><option value="week">This Week</option><option value="month" selected>This Month</option><option value="year">This Year</option><option value="all">All Time</option></select>
-        <select id="exportStatus"><option value="done">Completed only</option><option value="all">All tasks</option></select>
-        <input type="text" id="exportName" placeholder="Your name (optional)" style="width:160px">
-      </div>
-      <button class="export-btn" onclick="exportExcel()">⬇ Download Excel</button>
-    </div>
+
     <!-- APPROVALS CARD -->
     <div class="approvals-card" id="approvalsCard">
       <div class="approvals-card-header" onclick="toggleApprovalsCard()">
@@ -844,6 +846,7 @@ function renderDashboard(){
   if(!list.length){el.innerHTML=`<div class="empty-state"><div class="big">📋</div><h3>${tasks.length?'No tasks here':'No requests yet'}</h3><p>${tasks.length?'No tasks in this category.':'Create your first request to get started.'}</p></div>`;return;}
   el.innerHTML=list.map(t=>{
     const s=getStatus(t),d=daysUntil(t.deadline);
+    const hasPending=(t.questions||[]).some(q=>q.status==='pending');
     const dl=t.status==='done'?'Completed':d<0?`${Math.abs(d)}d overdue`:d===0?'Due today!':d===1?'Due tomorrow':`${d} days left`;
     const sc=s==='done'?'sb-done':s==='urgent'?'sb-urgent':'sb-upcoming';
     const st=s==='done'?'✓ Done':s==='urgent'?'🔥 Urgent':'Upcoming';
@@ -851,7 +854,7 @@ function renderDashboard(){
     const files=(t.attachments||[]).length;
     const pendingSpan=pending?' <span style="font-size:0.7rem;color:var(--accent)">⚡ '+pending+' pending</span>':'';
     const filesSpan=files?' <span style="font-size:0.7rem;color:var(--muted)">📎 '+files+'</span>':'';
-    return'<div class="task-card '+s+'" onclick="openTask('+t.id+')"><div class="task-top"><div class="task-name">'+t.name+pendingSpan+filesSpan+'</div><div class="task-badges"><span class="type-badge">'+(t.mtype||'Marketing')+'</span><span class="status-badge '+sc+'">'+st+'</span></div></div><div class="task-meta"><div class="task-meta-item">📅 '+fmtDate(t.deadline)+' · '+dl+'</div><div class="task-meta-item">🏢 '+(t.department||'Marketing')+'</div><div class="task-meta-item">👤 '+(t.assignee_name||'Unassigned')+'</div><div class="task-meta-item">⚡ '+t.priority+'</div></div><div class="task-card-actions" onclick="event.stopPropagation()"><button class="task-card-edit-btn" onclick="editTask('+t.id+')">✎ Edit</button><button class="task-card-delete-btn" onclick="deleteTask('+t.id+')">🗑 Delete</button>'+(t.status!=='done'?'<button class="task-card-edit-btn" style="margin-left:auto" onclick="markDone('+t.id+')">✓ Mark Done</button>':'')+'</div></div>';
+    return'<div class="task-card '+s+(hasPending?' has-pending':'')+'" onclick="openTask('+t.id+')"><div class="task-top"><div class="task-name">'+t.name+pendingSpan+filesSpan+'</div><div class="task-badges"><span class="type-badge">'+(t.mtype||'Marketing')+'</span><span class="status-badge '+sc+'">'+st+'</span></div></div><div class="task-meta"><div class="task-meta-item">📅 '+fmtDate(t.deadline)+' · '+dl+'</div><div class="task-meta-item">🏢 '+(t.department||'Marketing')+'</div><div class="task-meta-item">👤 '+(t.assignee_name||'Unassigned')+'</div><div class="task-meta-item">⚡ '+t.priority+'</div></div><div class="task-card-actions" onclick="event.stopPropagation()"><button class="task-card-edit-btn" onclick="editTask('+t.id+')">✎ Edit</button><button class="task-card-delete-btn" onclick="deleteTask('+t.id+')">🗑 Delete</button>'+(t.status!=='done'?'<button class="task-card-edit-btn" style="margin-left:auto" onclick="markDone('+t.id+')">✓ Mark Done</button>':'')+'</div></div>';
   }).join('');
 }
 
@@ -1340,6 +1343,19 @@ function buildApprovalHistoryCard(t,q,i,isPending){
   return '<div class="qa-card" style="margin-bottom:9px"><div class="qa-card-task">'+t.name+' · '+t.assignee_name+' ('+t.assignee_email+')</div><div class="qa-card-q">❓ '+q.text+'</div>'+(q.note?'<div style="font-size:0.79rem;color:var(--muted);margin-top:3px;font-style:italic">📝 '+q.note+'</div>':'')+atts+'<div class="qa-card-meta">Asked by '+q.asked_by+' · '+new Date(q.asked_at).toLocaleDateString()+'</div>'+responseHtml+actionBtns+'</div>';
 }
 
+function toggleExport(){
+  const dd = document.getElementById('exportDropdown');
+  dd.classList.toggle('open');
+}
+// Close export dropdown when clicking outside
+document.addEventListener('click', e=>{
+  const ec = document.getElementById('exportCollapsed');
+  if(ec && !ec.contains(e.target)){
+    const dd = document.getElementById('exportDropdown');
+    if(dd) dd.classList.remove('open');
+  }
+});
+
 function checkReminders(){
   tasks.filter(t=>t.status!=='done'&&daysUntil(t.deadline)<=2).forEach((t,i)=>{
     const d=daysUntil(t.deadline);
@@ -1464,6 +1480,12 @@ function switchAuthTab(tab){
 
 window.addEventListener('load',()=>{
   calDate=new Date();
+  // Register service worker for background notifications
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/sw.js').then(reg=>{
+      console.log('SW registered');
+    }).catch(e=>console.log('SW error:',e));
+  }
   // Notifications requested via modal after first submit
   initAuth();
   // Keep Supabase alive — ping every 4 days to prevent inactivity pause
