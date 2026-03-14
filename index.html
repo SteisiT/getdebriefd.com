@@ -1205,45 +1205,7 @@ async function inboxSendChanges(taskId,qaId,i){
   renderInbox();renderSent();renderApprovals();
 }
 
-function renderApprovals(){
-  const section=document.getElementById('approvalsSection');
-  if(!section) return;
-  const pending=[];
-  tasks.forEach(t=>{
-    (t.questions||[]).filter(q=>q.status==='pending').forEach(q=>{
-      pending.push({task:t, q});
-    });
-  });
-  if(!pending.length){
-    section.innerHTML='';
-    return;
-  }
-  const cardsHtml=pending.map((item,i)=>{
-    const{task:t,q}=item;
-    return '<div class="qa-card" id="qacard-'+i+'">'
-      +'<div class="qa-card-task">'+t.name+' · '+fmtDate(t.deadline)+'</div>'
-      +'<div class="qa-card-q">❓ '+q.text+'</div>'
-      +'<div class="qa-card-meta">Asked by '+q.asked_by+' · '+new Date(q.asked_at).toLocaleDateString()+'</div>'
-      +'<div class="qa-card-btns">'
-      +'<button class="qa-approve-btn" onclick="showQuickApprove('+i+')">✓ Approve</button>'
-      +'<button class="qa-changes-btn" onclick="showQuickFeedback('+i+')">✎ Request Changes</button>'
-      +'</div>'
-      +'<div class="qa-feedback-row" id="qaapp-'+i+'">'
-      +'<textarea id="qaapptxt-'+i+'" placeholder="Add a note with your approval (optional)..."></textarea>'
-      +'<div class="qa-file-zone"><input type="file" multiple onchange="handleQAResponseFiles(this.files,'+i+',true)">📎 Attach files (optional)</div>'
-      +'<div class="qa-file-list" id="qaAppFileList-'+i+'"></div>'
-      +'<button class="qa-submit-btn" style="background:var(--success);color:#0c0c0f" onclick="quickApprove('+t.id+','+q.id+','+i+')">✓ Confirm Approval</button>'
-      +'</div>'
-      +'<div class="qa-feedback-row" id="qafb-'+i+'">'
-      +'<textarea id="qatxt-'+i+'" placeholder="What needs to change? Add notes..."></textarea>'
-      +'<div class="qa-file-zone"><input type="file" multiple onchange="handleQAResponseFiles(this.files,'+i+')">📎 Attach files to response (any type, any size)</div>'
-      +'<div class="qa-file-list" id="qaRespFileList-'+i+'"></div>'
-      +'<button class="qa-submit-btn" onclick="quickChanges('+t.id+','+q.id+','+i+')">Send Feedback</button>'
-      +'</div>'
-      +'</div>';
-  }).join('');
-  section.innerHTML='<div class="approvals-section"><div class="approvals-section-header"><div class="approvals-section-title">⚡ Pending Approvals <span class="approvals-count-badge">'+pending.length+'</span></div></div>'+cardsHtml+'</div>';
-}
+
 
 // QA file staging
 let qaAskFiles=[], qaRespFiles={}, qaAppFiles={};
@@ -1463,115 +1425,17 @@ async function sendApprovalRequest(){
   finally{hideLoading();btn.disabled=false;}
 }
 
-function switchApprovalTab(tab){
-  ['inbox','sent','new'].forEach(t=>{
-    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',t===tab);
-    document.getElementById('panel'+t.charAt(0).toUpperCase()+t.slice(1)).style.display=t===tab?'block':'none';
-  });
-  if(tab==='inbox') renderInbox();
-  if(tab==='sent') renderSent();
-  if(tab==='new') populateApprovalTaskSelect();
-}
 
-function renderInbox(){
-  const userEmail=(currentUser?.email||'').toLowerCase();
-  const inbox=[];
-  tasks.forEach(t=>{
-    (t.questions||[]).filter(q=>q.status==='pending').forEach(q=>{
-      // Inbox = questions on tasks where I am the assignee (I need to respond)
-      if((t.assignee_email||'').toLowerCase()===userEmail) inbox.push({t,q});
-    });
-  });
-  const badge=document.getElementById('inboxBadge');
-  if(badge){if(inbox.length){badge.style.display='inline';badge.textContent=inbox.length;}else{badge.style.display='none';}}
-  const el=document.getElementById('inboxList');if(!el)return;
-  if(!inbox.length){el.innerHTML='<div style="font-size:0.84rem;color:var(--muted);padding:12px 0">No approvals waiting for your response.</div>';return;}
-  el.innerHTML=inbox.map((item,i)=>{
-    const{t,q}=item;
-    const atts=(q.attachments||[]).length?'<div style="margin-top:6px">'+q.attachments.map(a=>'<a href="'+a.url+'" target="_blank" style="font-size:0.76rem;color:var(--accent);margin-right:8px">📎 '+a.name+'</a>').join('')+'</div>':'';
-    return '<div class="inbox-card">'
-      +'<div class="inbox-card-task">'+t.name+' · Due '+fmtDate(t.deadline)+'</div>'
-      +'<div class="inbox-card-q">❓ '+q.text+'</div>'
-      +(q.note?'<div class="inbox-card-note">📝 '+q.note+'</div>':'')
-      +atts
-      +'<div class="inbox-card-meta">From '+q.asked_by+' · '+new Date(q.asked_at).toLocaleDateString()+'</div>'
-      +'<div class="inbox-actions">'
-      +'<button class="inbox-approve-btn" onclick="inboxApprove('+t.id+','+q.id+','+i+')">✓ Approve</button>'
-      +'<button class="inbox-changes-btn" onclick="inboxShowChanges('+i+')">✎ Request Changes</button>'
-      +'</div>'
-      +'<div class="inbox-response-panel" id="inboxResp-'+i+'">'
-      +'<textarea id="inboxNote-'+i+'" placeholder="Add a note (optional)..." style="margin-bottom:8px;min-height:70px"></textarea>'
-      +'<div class="qa-file-zone"><input type="file" multiple onchange="handleQAResponseFiles(this.files,'+i+')">📎 Attach files</div>'
-      +'<div class="qa-file-list" id="qaRespFileList-'+i+'"></div>'
-      +'<button class="approvals-send-btn" style="margin-top:8px" onclick="inboxSendChanges('+t.id+','+q.id+','+i+')">Send Feedback</button>'
-      +'</div>'
-      +'</div>';
-  }).join('');
-}
 
-function renderSent(){
-  const userEmail=(currentUser?.email||'').toLowerCase();
-  const sent=[];
-  tasks.forEach(t=>{
-    (t.questions||[]).forEach(q=>{
-      // Sent = questions where I am the requester (I asked)
-      if((t.requester_email||'').toLowerCase()===userEmail || q.asked_by===currentUser?.user_metadata?.full_name) sent.push({t,q});
-    });
-  });
-  const el=document.getElementById('sentList');if(!el)return;
-  if(!sent.length){el.innerHTML='<div style="font-size:0.84rem;color:var(--muted);padding:12px 0">No approval requests sent yet.</div>';return;}
-  el.innerHTML=sent.map(({t,q})=>{
-    const statusClass=q.status==='approved'?'sent-status-approved':q.status==='changes'?'sent-status-changes':'sent-status-pending';
-    const statusLabel=q.status==='approved'?'✓ Approved':q.status==='changes'?'✎ Changes Requested':'⏳ Awaiting Response';
-    return '<div class="sent-card">'
-      +'<div class="sent-card-task">'+t.name+'</div>'
-      +'<div class="sent-card-q">'+q.text+'</div>'
-      +'<div><span class="sent-card-status '+statusClass+'">'+statusLabel+'</span></div>'
-      +(q.response_note?'<div style="font-size:0.79rem;color:var(--muted);margin-top:6px">Response: '+q.response_note+'</div>':'')
-      +'</div>';
-  }).join('');
-}
 
-async function inboxApprove(taskId,qaId,i){
-  const note=document.getElementById('inboxNote-'+i)?.value||'';
-  const t=tasks.find(x=>x.id===taskId);if(!t)return;
-  const qIdx=(t.questions||[]).findIndex(q=>q.id===qaId);if(qIdx===-1)return;
-  showLoading('Saving...');
-  let atts=[];
-  if(qaRespFiles[i]?.length) atts=await uploadQAFiles(qaRespFiles[i],taskId,qaId+'_resp');
-  t.questions[qIdx].status='approved';
-  t.questions[qIdx].response_note=note;
-  t.questions[qIdx].response_attachments=atts;
-  sendApprovalResponseEmail(t,t.questions[qIdx]);
-  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
-  hideLoading();
-  await loadTasks();
-  toast('✓','Approved!','Response saved.',true);
-  renderInbox();renderSent();renderApprovals();
-}
 
-function inboxShowChanges(i){
-  const panel=document.getElementById('inboxResp-'+i);
-  if(panel) panel.classList.toggle('open');
-}
 
-async function inboxSendChanges(taskId,qaId,i){
-  const note=document.getElementById('inboxNote-'+i)?.value||'';
-  const t=tasks.find(x=>x.id===taskId);if(!t)return;
-  const qIdx=(t.questions||[]).findIndex(q=>q.id===qaId);if(qIdx===-1)return;
-  showLoading('Saving...');
-  let atts=[];
-  if(qaRespFiles[i]?.length) atts=await uploadQAFiles(qaRespFiles[i],taskId,qaId+'_resp');
-  t.questions[qIdx].status='changes';
-  t.questions[qIdx].response_note=note;
-  t.questions[qIdx].response_attachments=atts;
-  sendApprovalResponseEmail(t,t.questions[qIdx]);
-  await db.from('tasks').update({questions:t.questions}).eq('id',taskId);
-  hideLoading();
-  await loadTasks();
-  toast('✎','Feedback sent!','Changes requested.',true);
-  renderInbox();renderSent();renderApprovals();
-}
+
+
+
+
+
+
 
 function renderApprovals(){
   const userEmail=(currentUser?.email||'').toLowerCase();
